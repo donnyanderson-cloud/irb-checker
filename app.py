@@ -4,7 +4,6 @@ from PyPDF2 import PdfReader
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="AP Research IRB Auto-Checker", page_icon="📝", layout="wide")
-st.caption("⚠️ **Note:** This tool uses Artificial Intelligence to assist in reviewing documents. It may occasionally make errors. The final determination of ethical compliance rests with the IRB Committee, not this software.")
 
 # --- SIDEBAR: CONFIGURATION ---
 with st.sidebar:
@@ -33,6 +32,9 @@ st.title("🛡️ AP Research IRB Self-Check Tool")
 st.markdown("""
 This tool screens your research documents against **Blount County Policy 6.4001**, **AP Data Standards**, and **Federal Ethics Rules**.
 """)
+st.caption("⚠️ **Note:** This tool uses Artificial Intelligence to assist in reviewing documents. It may occasionally make errors. The final determination of ethical compliance rests with the IRB Committee, not this software.")
+
+
 
 # --- STEP 1: MULTI-SELECT INTERFACE ---
 document_types = [
@@ -94,19 +96,21 @@ You are the AP Research IRB Compliance Officer for Blount County Schools. Screen
 
 CRITERIA & RULES:
 
-1. FATAL FLAWS (Blount County Policy 6.4001):
+1. FATAL FLAWS (Blount County Policy 6.4001 & PPRA):
    - PROHIBITED TOPICS: Political affiliations, voting history, religious practices, firearm ownership. (Strict Fail).
    - SENSITIVE TOPICS: Mental health, sexual behavior, illegal acts, income. (Requires Parent Permission).
+   - RIGHT TO INSPECT: Parent Permission forms MUST state: "Parents have the right to inspect survey materials upon request."
 
 2. MINOR PROTECTION (OHRP / Belmont):
-   - TERMINOLOGY: Minors provide 'Assent', Parents provide 'Permission'. (Students often wrongly use 'Consent' for minors).
+   - TERMINOLOGY: Minors provide 'Assent', Parents provide 'Permission'. 
    - COERCION: Participation must be VOLUNTARY. No penalty for saying no.
    - SILENCE != ASSENT: "If you don't say no, you are in" is invalid.
+   - SAFETY NET: If the topic involves stress/emotions, there MUST be a "Distress Protocol" (e.g., referral to guidance counselor).
 
-3. DATA SECURITY (AP Standards):
+3. DATA SECURITY & INTEGRITY (AP Standards):
    - DESTRUCTION: Must state a specific DATE (e.g., May 2025) and METHOD (shred/delete).
-   - ANONYMITY: If 'Anonymous', NO names/emails can be collected. If names collected, must be 'Confidential'.
-   - STORAGE: No data on public school computers or shared devices.
+   - ANONYMITY: If 'Anonymous', NO names/emails can be collected.
+   - CONFLICT OF INTEREST: Flag if the student is surveying their own close friends, teammates, or teachers without a bias mitigation plan.
 
 OUTPUT FORMAT:
 For each document section provided, output:
