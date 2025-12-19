@@ -4,6 +4,7 @@ from PyPDF2 import PdfReader
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="AP Research IRB Auto-Checker", page_icon="📝", layout="wide")
+st.caption("⚠️ **Note:** This tool uses Artificial Intelligence to assist in reviewing documents. It may occasionally make errors. The final determination of ethical compliance rests with the IRB Committee, not this software.")
 
 # --- SIDEBAR: CONFIGURATION ---
 with st.sidebar:
