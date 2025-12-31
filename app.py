@@ -10,8 +10,7 @@ st.set_page_config(page_title="BCS Research Review Portal", page_icon="🏫", la
 with st.sidebar:
     st.header("⚙️ Configuration")
 
-    # 1. THE MODE SELECTOR (Moved to Top)
-    # We ask this FIRST so we can change the settings below based on the answer
+    # 1. THE MODE SELECTOR
     st.subheader("👥 Select User Mode")
     user_mode = st.radio(
         "Who are you?",
@@ -21,7 +20,7 @@ with st.sidebar:
     
     st.markdown("---")
 
-    # 2. FILE NAMING GUIDE (Updated to match your Website)
+    # 2. FILE NAMING GUIDE
     with st.expander("📂 File Naming Standards"):
         if user_mode == "AP Research Student":
             st.markdown("""
@@ -48,17 +47,13 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # 3. API Key Handling (Smart Logic)
-    # Check if a global district key exists
+    # 3. API KEY HANDLING
     if "GOOGLE_API_KEY" in st.secrets:
         district_key = st.secrets["GOOGLE_API_KEY"]
         api_key = district_key
         
-        # LOGIC: Only show the "Override" options for STUDENTS
-        # External researchers just see "Active" to keep it professional
         if user_mode == "AP Research Student":
             st.success("✅ District License Active")
-            
             with st.expander("🚀 Performance Boost (Use Your Own Key)"):
                 st.info("Classroom blocked? Use your own free key to bypass the wait.")
                 st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
@@ -68,11 +63,9 @@ with st.sidebar:
                     api_key = user_key
                     st.success("✅ Using Personal Key")
         else:
-            # For External Researchers, just show it works
             st.success("✅ District License Active")
 
     else:
-        # Fallback if NO district key exists in secrets at all
         st.markdown("### 🔑 Need an API Key?")
         st.info("System requires an API key.")
         st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
@@ -80,7 +73,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 4. System Diagnostics (Hidden for External to look cleaner)
+    # 4. DIAGNOSTICS
     if user_mode == "AP Research Student":
         try:
             lib_ver = importlib.metadata.version("google-generativeai")
@@ -107,9 +100,7 @@ def extract_text(uploaded_file):
 # ==========================================
 if user_mode == "AP Research Student":
     st.title("🛡️ AP Research IRB Self-Check Tool")
-    st.markdown("""
-    **For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.
-    """)
+    st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.")
 
     document_types = [
         "Research Proposal",
@@ -164,9 +155,7 @@ if user_mode == "AP Research Student":
 else:
     st.title("🏛️ External Research Proposal Review")
     st.info("### 📋 Criteria for External Proposals")
-    st.markdown("""
-    All research requests involving Blount County Schools (BCS) students, staff, or data are critiqued against District Standards (Policy 6.4001).
-    """)
+    st.markdown("All research requests involving Blount County Schools (BCS) are critiqued against District Standards (Policy 6.4001).")
     st.info("You may upload multiple PDF files for each section.")
 
     external_inputs = {}
@@ -176,7 +165,6 @@ else:
     with col1:
         st.markdown("### 1. Main Proposal Packet")
         st.caption("Purpose, Methodology, Benefit, Logistics.")
-        # MODIFIED: accept_multiple_files=True
         prop_files = st.file_uploader("Upload Full Proposal (PDFs)", type="pdf", key="ext_prop", accept_multiple_files=True)
         if prop_files:
             combined_text = ""
@@ -187,7 +175,6 @@ else:
     with col2:
         st.markdown("### 2. Instruments & Consents")
         st.caption("Surveys, Protocols, Consent Forms.")
-        # MODIFIED: accept_multiple_files=True
         inst_files = st.file_uploader("Upload Instruments (PDFs)", type="pdf", key="ext_inst", accept_multiple_files=True)
         if inst_files:
             combined_text = ""
@@ -216,7 +203,7 @@ else:
     student_inputs = external_inputs
 
 # ==========================================
-# EXECUTION LOGIC (WITH PROGRESS UPDATES, ZERO TEMP, & NEXT STEPS)
+# EXECUTION LOGIC
 # ==========================================
 if st.button("Run Compliance Check"):
     if not api_key:
@@ -229,13 +216,68 @@ if st.button("Run Compliance Check"):
         status.info("🔌 Connecting to AI Services...")
         genai.configure(api_key=api_key)
         
-        # 2. MODEL CONFIG (Deterministic / Zero Creativity)
-        generation_config = {
-            "temperature": 0.0,
-            "top_p": 1,
-            "top_k": 1,
-            "max_output_tokens": 4096,
-        }
+        # 2. MODEL CONFIG
+        generation_config = {"temperature": 0.0, "top_p": 1, "top_k": 1, "max_output_tokens": 4096}
+        
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+        ]
 
-        # Using 'gemini-flash-latest' to match your available models list
-        model =
+        # Consolidated Model Definition to prevent Syntax Errors
+        model = genai.GenerativeModel(model_name='gemini-flash-latest', generation_config=generation_config, safety_settings=safety_settings)
+
+        # 3. PREPARING TEXT
+        status.info("📄 Reading your PDF files...")
+        user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
+        
+        total_chars = 0
+        for doc_type, content in student_inputs.items():
+            clean_content = str(content)[:40000]
+            total_chars += len(clean_content)
+            user_message += f"\n--- {doc_type} ---\n{clean_content}\n" 
+        
+        status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
+
+        # 4. SENDING REQUEST
+        with st.spinner("🤖 Analyzing against District Policy..."):
+            try:
+                response = model.generate_content(user_message)
+                status.success("✅ Analysis Complete!")
+                st.markdown("---")
+                
+                # DISPLAY THE AI ANALYSIS
+                st.markdown(response.text)
+                
+                # --- CONDITIONAL NEXT STEPS ---
+                st.markdown("---")
+                st.subheader("📬 Next Steps")
+                
+                if user_mode == "AP Research Student":
+                    st.info("""
+                    **If all of your artifacts have passed:**
+                    1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
+                    2. Make sure that all files that were AI screened are shared with Mr. Anderson.
+                    
+                    **If your Status is ❌ REVISION NEEDED:**
+                    * Review the "Action Items" above, edit your documents, and re-run this check.
+                    """)
+                    
+                else: # External Researcher
+                    st.success("""
+                    **✅ If all of your artifacts have passed:**
+                    Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
+                    *⚠️ Make sure that all file sharing options have been addressed prior to your email submission (ensure links are public/viewable).*
+                    """)
+                    
+                    st.warning("""
+                    **❌ If the Analysis says "REVISION REQUIRED":**
+                    Please correct the items listed in the checklist above before emailing the district. 
+                    Non-compliant proposals will be automatically returned.
+                    """)
+                
+            except Exception as e:
+                status.error("❌ Analysis Failed")
+                st.error(f"Error details: {e}")
