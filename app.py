@@ -6,13 +6,12 @@ import importlib.metadata
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="BCS Research Review Portal", page_icon="🏫", layout="wide")
 
-import random
-
 # --- SIDEBAR: GLOBAL SETTINGS ---
 with st.sidebar:
     st.header("⚙️ Configuration")
 
-    # 1. THE MODE SELECTOR
+    # 1. THE MODE SELECTOR (Moved to Top)
+    # We ask this FIRST so we can change the settings below based on the answer
     st.subheader("👥 Select User Mode")
     user_mode = st.radio(
         "Who are you?",
@@ -21,37 +20,77 @@ with st.sidebar:
     )
     
     st.markdown("---")
+
+    # 2. FILE NAMING GUIDE (Updated to match your Website)
+    with st.expander("📂 File Naming Standards"):
+        if user_mode == "AP Research Student":
+            st.markdown("""
+            **⚠️ GOOGLE DOCS USERS:**
+            Please name your Google Doc using this format **before** downloading as PDF.
+            
+            **Required Format:**
+            `Last name, First name - [Document Type]`
+            
+            **Copy/Paste Templates:**
+            * `Smith, John - Research Proposal`
+            * `McCall, Debbie - Survey - Interview Questions`
+            * `Wolfe-Miller, LaDonna - Parent Permission Form`
+            * `Jones, Tommy - Principal-District Permission Forms`
+            """)
+        else:
+            st.markdown("""
+            **For External Review:**
+            Please include your Name, Institution, and Year:
+            
+            * `Lastname_Institution_Proposal_2025.pdf`
+            * `Lastname_Institution_Instruments_2025.pdf`
+            """)
     
-    # 2. INTELLIGENT KEY LOAD BALANCER
-    api_key = None
+    st.markdown("---")
     
-    # Check for the list of keys in secrets
-    if "DISTRICT_KEYS" in st.secrets:
-        # Randomly select one key from the pool for this session
-        key_pool = st.secrets["DISTRICT_KEYS"]
-        district_key = random.choice(key_pool)
+    # 3. API Key Handling (Smart Logic)
+    # Check if a global district key exists
+    if "GOOGLE_API_KEY" in st.secrets:
+        district_key = st.secrets["GOOGLE_API_KEY"]
         api_key = district_key
         
+        # LOGIC: Only show the "Override" options for STUDENTS
+        # External researchers just see "Active" to keep it professional
         if user_mode == "AP Research Student":
-            st.success(f"✅ District License Active (Pool of {len(key_pool)})")
-            # We still keep the override just in case!
+            st.success("✅ District License Active")
+            
             with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-                st.info("Classroom blocked? Use your own free key.")
+                st.info("Classroom blocked? Use your own free key to bypass the wait.")
                 st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
+                st.markdown("**2. Paste it below:**")
                 user_key = st.text_input("Paste your personal key:", type="password")
                 if user_key:
                     api_key = user_key
                     st.success("✅ Using Personal Key")
         else:
+            # For External Researchers, just show it works
             st.success("✅ District License Active")
-            
-    # Fallback for the old single-key method (backwards compatibility)
-    elif "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        st.success("✅ District License Active (Single)")
-        
+
     else:
-        st.error("❌ No API Keys found.")
+        # Fallback if NO district key exists in secrets at all
+        st.markdown("### 🔑 Need an API Key?")
+        st.info("System requires an API key.")
+        st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
+        api_key = st.text_input("Enter Google API Key", type="password")
+
+    st.markdown("---")
+    
+    # 4. System Diagnostics (Hidden for External to look cleaner)
+    if user_mode == "AP Research Student":
+        try:
+            lib_ver = importlib.metadata.version("google-generativeai")
+        except:
+            lib_ver = "Unknown"
+        st.caption(f"⚙️ System Version: {lib_ver}")
+        st.markdown("---")
+    
+    st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
+
 # --- HELPER FUNCTION: PDF TEXT EXTRACTION ---
 def extract_text(uploaded_file):
     try:
@@ -103,6 +142,11 @@ if user_mode == "AP Research Student":
         st.markdown("### 3. Parent Permission Form")
         file = st.file_uploader("Upload Parent Form (PDF)", type="pdf", key="ap_parent")
         if file: student_inputs["PARENT_FORM"] = extract_text(file)
+
+    if "Principal/District Permission Forms" in selected_docs:
+        st.markdown("### 4. Principal/District Permission Forms")
+        file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
+        if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
@@ -193,68 +237,5 @@ if st.button("Run Compliance Check"):
             "max_output_tokens": 4096,
         }
 
-        model = genai.GenerativeModel(
-            model_name='gemini-flash-latest', 
-            generation_config=generation_config,
-            safety_settings=[
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
-            ]
-        )
-
-        # 3. PREPARING TEXT
-        status.info("📄 Reading your PDF files...")
-        user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
-        
-        total_chars = 0
-        for doc_type, content in student_inputs.items():
-            clean_content = str(content)[:40000]
-            total_chars += len(clean_content)
-            user_message += f"\n--- {doc_type} ---\n{clean_content}\n" 
-        
-        status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
-
-        # 4. SENDING REQUEST
-        with st.spinner("🤖 Analyzing against District Policy..."):
-            try:
-                response = model.generate_content(user_message)
-                status.success("✅ Analysis Complete!")
-                st.markdown("---")
-                
-                # DISPLAY THE AI ANALYSIS
-                st.markdown(response.text)
-                
-                # --- NEW SECTION: CONDITIONAL NEXT STEPS ---
-                st.markdown("---")
-                st.subheader("📬 Next Steps")
-                
-                if user_mode == "AP Research Student":
-                    st.info("""
-                    **If all of your artifacts have passed:**
-                    1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
-                    2. Make sure that all files that were AI screened are shared with Mr. Anderson.
-                    
-                    **If your Status is ❌ REVISION NEEDED:**
-                    * Review the "Action Items" above, edit your documents, and re-run this check.
-                    """)
-                    
-                else: # External Researcher
-                    st.success("""
-                    **✅ If all of your artifacts have passed:**
-                    
-                    Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
-                    
-                    *⚠️ Make sure that all file sharing options have been addressed prior to your email submission (ensure links are public/viewable).*
-                    """)
-                    
-                    st.warning("""
-                    **❌ If the Analysis says "REVISION REQUIRED":**
-                    Please correct the items listed in the checklist above before emailing the district. 
-                    Non-compliant proposals will be automatically returned.
-                    """)
-                
-            except Exception as e:
-                status.error("❌ Analysis Failed")
-                st.error(f"Error details: {e}")
+        # Using 'gemini-flash-latest' to match your available models list
+        model =
