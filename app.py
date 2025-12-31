@@ -227,12 +227,13 @@ if st.button("Run Compliance Check"):
         st.warning("Please upload at least one document.")
     else:
         # 1. SETUP
-        status = st.empty() # Create a placeholder for status updates
+        status = st.empty() 
         status.info("🔌 Connecting to AI Services...")
         genai.configure(api_key=api_key)
         
         # 2. MODEL CONFIG
-        model = genai.GenerativeModel('gemini-1.5-flash', safety_settings=[
+        # We are using the alias found in your diagnostic list
+        model = genai.GenerativeModel('gemini-flash-latest', safety_settings=[
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
@@ -243,10 +244,9 @@ if st.button("Run Compliance Check"):
         status.info("📄 Reading your PDF files...")
         user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
         
-        # Debug: Check text length
         total_chars = 0
         for doc_type, content in student_inputs.items():
-            clean_content = str(content)[:40000] # Force string conversion just in case
+            clean_content = str(content)[:40000]
             total_chars += len(clean_content)
             user_message += f"\n--- {doc_type} ---\n{clean_content}\n" 
         
@@ -261,5 +261,5 @@ if st.button("Run Compliance Check"):
                 st.markdown(response.text)
                 
             except Exception as e:
-                status.error("❌ Error during analysis")
+                status.error("❌ Analysis Failed")
                 st.error(f"Error details: {e}")
