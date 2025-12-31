@@ -1,4 +1,4 @@
-import streamlit as st
+model = genai.GenerativeModel('gemini-1.5-flash', safety_settings=safety_settings)
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 
