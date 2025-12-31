@@ -16,14 +16,21 @@ with st.sidebar:
         api_key = st.secrets["GOOGLE_API_KEY"]
         
         # Optional: Allow override if the district key hits limits
-        with st.expander("Override / Use My Own Key"):
+        with st.expander("🚀 Performance Boost (Use Your Own Key)"):
+            st.info("Classroom blocked? Use your own free key to bypass the wait.")
+            
+            # The Link Button
+            st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
+            
+            st.markdown("**2. Paste it below:**")
             user_key = st.text_input("Paste your personal key:", type="password")
+            
             if user_key:
                 api_key = user_key
-                st.success("Using Personal Key")
+                st.success("✅ Using Personal Key")
 
     else:
-        # If no district key, force them to enter one
+        # If no district key (Secrets) found, force them to enter one
         st.markdown("### 🔑 Need an API Key?")
         st.info("To avoid system crashes during class, please generate your own free key.")
         
