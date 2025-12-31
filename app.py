@@ -9,49 +9,9 @@ st.set_page_config(page_title="BCS Research Review Portal", page_icon="🏫", la
 # --- SIDEBAR: GLOBAL SETTINGS ---
 with st.sidebar:
     st.header("⚙️ Configuration")
-    
-    # 1. API Key Handling
-    # Check if a global district key exists
-    if "GOOGLE_API_KEY" in st.secrets:
-        st.success("✅ District License Active")
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        
-        # Optional: Allow override if the district key hits limits
-        with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-            st.info("Classroom blocked? Use your own free key to bypass the wait.")
-            
-            # The Link Button
-            st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-            
-            st.markdown("**2. Paste it below:**")
-            user_key = st.text_input("Paste your personal key:", type="password")
-            
-            if user_key:
-                api_key = user_key
-                st.success("✅ Using Personal Key")
 
-    else:
-        # If no district key (Secrets) found, force them to enter one
-        st.markdown("### 🔑 Need an API Key?")
-        st.info("To avoid system crashes during class, please generate your own free key.")
-        
-        # The Link Button
-        st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-        
-        st.markdown("**2. Paste it below:**")
-        api_key = st.text_input("Enter Google API Key", type="password")
-
-    st.markdown("---")
-    
-    # 2. System Diagnostics
-    try:
-        lib_ver = importlib.metadata.version("google-generativeai")
-    except:
-        lib_ver = "Unknown"
-    st.caption(f"⚙️ System Version: {lib_ver}")
-    st.markdown("---")
-    
-    # 3. THE MODE SELECTOR
+    # 1. THE MODE SELECTOR (Moved to Top)
+    # We ask this FIRST so we can change the settings below based on the answer
     st.subheader("👥 Select User Mode")
     user_mode = st.radio(
         "Who are you?",
@@ -60,6 +20,48 @@ with st.sidebar:
     )
     
     st.markdown("---")
+    
+    # 2. API Key Handling (Smart Logic)
+    # Check if a global district key exists
+    if "GOOGLE_API_KEY" in st.secrets:
+        district_key = st.secrets["GOOGLE_API_KEY"]
+        api_key = district_key
+        
+        # LOGIC: Only show the "Override" options for STUDENTS
+        # External researchers just see "Active" to keep it professional
+        if user_mode == "AP Research Student":
+            st.success("✅ District License Active")
+            
+            with st.expander("🚀 Performance Boost (Use Your Own Key)"):
+                st.info("Classroom blocked? Use your own free key to bypass the wait.")
+                st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
+                st.markdown("**2. Paste it below:**")
+                user_key = st.text_input("Paste your personal key:", type="password")
+                if user_key:
+                    api_key = user_key
+                    st.success("✅ Using Personal Key")
+        else:
+            # For External Researchers, just show it works
+            st.success("✅ District License Active")
+
+    else:
+        # Fallback if NO district key exists in secrets at all
+        st.markdown("### 🔑 Need an API Key?")
+        st.info("System requires an API key.")
+        st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
+        api_key = st.text_input("Enter Google API Key", type="password")
+
+    st.markdown("---")
+    
+    # 3. System Diagnostics (Hidden for External to look cleaner)
+    if user_mode == "AP Research Student":
+        try:
+            lib_ver = importlib.metadata.version("google-generativeai")
+        except:
+            lib_ver = "Unknown"
+        st.caption(f"⚙️ System Version: {lib_ver}")
+        st.markdown("---")
+    
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
 # --- HELPER FUNCTION: PDF TEXT EXTRACTION ---
@@ -82,7 +84,6 @@ if user_mode == "AP Research Student":
     **For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.
     """)
 
-    # --- INPUTS ---
     document_types = [
         "Research Proposal",
         "Survey / Interview Questions",
@@ -115,20 +116,14 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Parent Form (PDF)", type="pdf", key="ap_parent")
         if file: student_inputs["PARENT_FORM"] = extract_text(file)
 
-    # --- AP SYSTEM PROMPT ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
-    
     CRITERIA (Policy 6.4001 & Federal Rules):
     1. PROHIBITED: Political affiliation, voting history, religious practices, firearm ownership. (Strict Fail).
     2. SENSITIVE: Mental health, sexual behavior, illegal acts, income. Requires 'Active Written Consent'.
     3. MINOR PROTECTION: Participation is VOLUNTARY. No coercion.
     4. DATA: Must have destruction date and method.
-    
-    OUTPUT:
-    - STATUS: [✅ PASS] or [❌ REVISION NEEDED]
-    - FINDINGS: Bullet points.
-    - ACTION: Specific rewrite instructions.
+    OUTPUT: STATUS (PASS/REVISION), FINDINGS, ACTION.
     """
 
 # ==========================================
@@ -138,83 +133,54 @@ else:
     st.title("🏛️ External Research Proposal Review")
     st.info("### 📋 Criteria for External Proposals")
     st.markdown("""
-    All research requests involving Blount County Schools (BCS) students, staff, or data are critiqued against the following district standards:
-
-    * **Projected Value:** The proposal must clearly articulate a "projected value of the study to Blount County". Studies deemed to have little educational research value or those using the district solely for "convenience sampling" will be denied.
-    * **Instructional Impact:** Research must not interfere with instructional time. Proposals that place an "undue burden" on district personnel or resources will not be approved.
-    * **Strictly Prohibited Data:** The collection of student data regarding political affiliation, voting history, religious practices, or firearm ownership is strictly prohibited.
-    * **Sensitive Topics & Consent:** Topics involving mental health, sexual behavior, illegal acts, income, or family relationships require **written, informed, and voluntarily signed consent** from parents.
-    * **Mandatory Policy Agreement:** The proposal must include a written statement indicating that the researcher has read, understands, and agrees to abide by **Blount County School Board Policy 6.4001**.
-    * **Voluntary Participation:** All surveys and instruments must explicitly state that responses are voluntary.
+    All research requests involving Blount County Schools (BCS) students, staff, or data are critiqued against District Standards (Policy 6.4001).
     """)
-    st.info("Please upload your documents below for review.")
+    st.info("You may upload multiple PDF files for each section.")
 
-    # --- INPUTS ---
     external_inputs = {}
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("### 1. Main Proposal Packet")
-        st.caption("Should include Purpose, Methodology, Benefit to BCS, and Logistics.")
-        prop_file = st.file_uploader("Upload Full Proposal (PDF)", type="pdf", key="ext_prop")
-        if prop_file: external_inputs["FULL_PROPOSAL"] = extract_text(prop_file)
+        st.caption("Purpose, Methodology, Benefit, Logistics.")
+        # MODIFIED: accept_multiple_files=True
+        prop_files = st.file_uploader("Upload Full Proposal (PDFs)", type="pdf", key="ext_prop", accept_multiple_files=True)
+        if prop_files:
+            combined_text = ""
+            for f in prop_files:
+                combined_text += extract_text(f) + "\n\n"
+            external_inputs["FULL_PROPOSAL"] = combined_text
 
     with col2:
         st.markdown("### 2. Instruments & Consents")
-        st.caption("Surveys, Interview Protocols, and Parent/Guardian Consent Forms.")
-        inst_file = st.file_uploader("Upload Instruments (PDF)", type="pdf", key="ext_inst")
-        if inst_file: external_inputs["INSTRUMENTS"] = extract_text(inst_file)
+        st.caption("Surveys, Protocols, Consent Forms.")
+        # MODIFIED: accept_multiple_files=True
+        inst_files = st.file_uploader("Upload Instruments (PDFs)", type="pdf", key="ext_inst", accept_multiple_files=True)
+        if inst_files:
+            combined_text = ""
+            for f in inst_files:
+                combined_text += extract_text(f) + "\n\n"
+            external_inputs["INSTRUMENTS"] = combined_text
 
-    # --- EXTERNAL SYSTEM PROMPT ---
     system_prompt = """
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
-    
     TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
 
     CRITICAL COMPLIANCE CHECKS:
-
-    1. BENEFIT TO DISTRICT
-       - The proposal MUST explicitly state a "projected value of the study to Blount County."
-       - If the study is purely for the researcher's degree with no clear feedback/value to BCS, flag as "Low Priority/Educational Value".
-
-    2. BURDEN & INSTRUCTIONAL TIME
-       - Does the study interfere with instructional time?
-       - Is the time commitment (minutes per participant) clearly defined?
-       - Flag "Convenience Sampling" if they just want "any students available".
-
-    3. PROHIBITED TOPICS (Strict Ban)
-       - Political affiliation / Voting history
-       - Religious practices
-       - Firearm ownership
-       - If ANY of these are asked, result is IMMEDIATE REJECTION.
-
-    4. SENSITIVE TOPICS (Requires Explicit Consent)
-       - Mental health, sexual behavior, illegal acts, family appraisals, income.
-       - If present, verify that "Written, Informed, Voluntary Signed Consent" is required from parents.
-
-    5. MANDATORY STATEMENTS
-       - Must include a statement agreeing to abide by "Blount County School Board Policy 6.4001".
-       - All instruments must explicitly state that responses are "Voluntary".
-       - Must confirm that parents have the "Right to inspect" materials.
-       - Anonymity: Must guarantee students/schools will not be identified in publications.
+    1. BENEFIT TO DISTRICT: Must explicitly state "projected value of the study to Blount County."
+    2. BURDEN: Must not interfere with instructional time. No "Convenience Sampling."
+    3. PROHIBITED TOPICS (Strict Ban): Political affiliation, Voting, Religion, Firearms.
+    4. SENSITIVE TOPICS: Mental health, sex, illegal acts, income -> Requires Written Active Consent.
+    5. MANDATORY STATEMENTS: Agreement to Policy 6.4001, Voluntary statement, Right to inspect, Anonymity.
 
     OUTPUT FORMAT:
-    
     ### 🚦 Executive Summary
     **Status:** [RECOMMEND FOR REVIEW] or [REVISION REQUIRED]
-    
     ### 🔍 Compliance Checklist
-    1. **Benefit to BCS:** [Yes/No/Unclear] - *Quote the claimed benefit.*
-    2. **Prohibited Topics:** [Detected/None]
-    3. **Policy 6.4001 Agreement:** [Present/Missing] - *Must explicitly mention the policy number.*
-    4. **Voluntary Statement:** [Present/Missing] - *Check instruments.*
-    
     ### 📝 Detailed Findings & Action Items
-    * [List specific missing elements or red flags based on the citations above]
     """
     
-    # Point the processing variable to the external inputs
     student_inputs = external_inputs
 
 # ==========================================
@@ -232,7 +198,7 @@ if st.button("Run Compliance Check"):
         genai.configure(api_key=api_key)
         
         # 2. MODEL CONFIG
-        # We are using the alias found in your diagnostic list
+        # Using 'gemini-flash-latest' to match your available models list
         model = genai.GenerativeModel('gemini-flash-latest', safety_settings=[
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
