@@ -188,7 +188,6 @@ else:
 # ==========================================
 # EXECUTION LOGIC (SHARED)
 # ==========================================
-# Note: This logic is NOT indented so it runs for both modes
 if st.button("Run Compliance Check"):
     if not api_key:
         st.error("⚠️ Please enter a Google API Key in the sidebar.")
@@ -199,8 +198,8 @@ if st.button("Run Compliance Check"):
         genai.configure(api_key=api_key)
         
         # --- MODEL CONFIGURATION ---
-        # Using 'gemini-1.5-flash-latest' to ensure availability
-        model = genai.GenerativeModel('gemini-1.5-flash-latest', safety_settings=[
+        # Using standard 'gemini-1.5-flash'
+        model = genai.GenerativeModel('gemini-1.5-flash', safety_settings=[
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
