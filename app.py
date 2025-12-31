@@ -6,12 +6,13 @@ import importlib.metadata
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="BCS Research Review Portal", page_icon="🏫", layout="wide")
 
+import random
+
 # --- SIDEBAR: GLOBAL SETTINGS ---
 with st.sidebar:
     st.header("⚙️ Configuration")
 
-    # 1. THE MODE SELECTOR (Moved to Top)
-    # We ask this FIRST so we can change the settings below based on the answer
+    # 1. THE MODE SELECTOR
     st.subheader("👥 Select User Mode")
     user_mode = st.radio(
         "Who are you?",
@@ -21,49 +22,36 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # 2. API Key Handling (Smart Logic)
-    # Check if a global district key exists
-    if "GOOGLE_API_KEY" in st.secrets:
-        district_key = st.secrets["GOOGLE_API_KEY"]
+    # 2. INTELLIGENT KEY LOAD BALANCER
+    api_key = None
+    
+    # Check for the list of keys in secrets
+    if "DISTRICT_KEYS" in st.secrets:
+        # Randomly select one key from the pool for this session
+        key_pool = st.secrets["DISTRICT_KEYS"]
+        district_key = random.choice(key_pool)
         api_key = district_key
         
-        # LOGIC: Only show the "Override" options for STUDENTS
-        # External researchers just see "Active" to keep it professional
         if user_mode == "AP Research Student":
-            st.success("✅ District License Active")
-            
+            st.success(f"✅ District License Active (Pool of {len(key_pool)})")
+            # We still keep the override just in case!
             with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-                st.info("Classroom blocked? Use your own free key to bypass the wait.")
+                st.info("Classroom blocked? Use your own free key.")
                 st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-                st.markdown("**2. Paste it below:**")
                 user_key = st.text_input("Paste your personal key:", type="password")
                 if user_key:
                     api_key = user_key
                     st.success("✅ Using Personal Key")
         else:
-            # For External Researchers, just show it works
             st.success("✅ District License Active")
-
+            
+    # Fallback for the old single-key method (backwards compatibility)
+    elif "GOOGLE_API_KEY" in st.secrets:
+        api_key = st.secrets["GOOGLE_API_KEY"]
+        st.success("✅ District License Active (Single)")
+        
     else:
-        # Fallback if NO district key exists in secrets at all
-        st.markdown("### 🔑 Need an API Key?")
-        st.info("System requires an API key.")
-        st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-        api_key = st.text_input("Enter Google API Key", type="password")
-
-    st.markdown("---")
-    
-    # 3. System Diagnostics (Hidden for External to look cleaner)
-    if user_mode == "AP Research Student":
-        try:
-            lib_ver = importlib.metadata.version("google-generativeai")
-        except:
-            lib_ver = "Unknown"
-        st.caption(f"⚙️ System Version: {lib_ver}")
-        st.markdown("---")
-    
-    st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
-
+        st.error("❌ No API Keys found.")
 # --- HELPER FUNCTION: PDF TEXT EXTRACTION ---
 def extract_text(uploaded_file):
     try:
