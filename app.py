@@ -46,6 +46,9 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
     
+          st.markdown("---")
+    
+    st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
     st.markdown("---")
     
     # 3. INTELLIGENT KEY LOAD BALANCER
