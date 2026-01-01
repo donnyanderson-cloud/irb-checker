@@ -48,9 +48,6 @@ with st.sidebar:
     
           st.markdown("---")
     
-    st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
-    st.markdown("---")
-    
     # 3. INTELLIGENT KEY LOAD BALANCER
     api_key = None
     
