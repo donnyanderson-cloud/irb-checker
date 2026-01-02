@@ -191,7 +191,7 @@ if user_mode == "AP Research Student":
             }
         }
         """)
-    st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.")
+    st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.  Check the sidebar to **confirm file-naming standards** for each of your files.")
 
     document_types = [
         "Research Proposal",
