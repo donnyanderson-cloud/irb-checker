@@ -124,6 +124,73 @@ def extract_text(uploaded_file):
 # ==========================================
 if user_mode == "AP Research Student":
     st.title("🛡️ AP Research IRB Self-Check Tool")
+    # --- WORKFLOW GRAPHIC ---
+    with st.expander("🗺️ View Research Workflow Map"):
+        st.graphviz_chart("""
+        digraph {
+            rankdir=TB;
+            node [shape=box, style="filled,rounded", fontname="Sans-Serif"];
+            
+            # Colors
+            node [fillcolor="#e1f5fe" color="#01579b"]; # Student Blue
+            
+            # Phase 1
+            subgraph cluster_0 {
+                label = "Phase 1: Development";
+                style=dashed; color=grey;
+                Draft [label="📝 Draft Proposal"];
+                Inst [label="Create Instruments"];
+                Draft -> Inst;
+            }
+
+            # Phase 2
+            subgraph cluster_1 {
+                label = "Phase 2: AI Compliance Check";
+                style=filled; color="#e8f5e9";
+                
+                node [fillcolor="#c8e6c9" color="#2e7d32"]; # AI Green
+                Upload [label="🚀 Upload to AI Portal"];
+                Check [label="⚠️ AI Review"];
+                Pass [label="✅ Clean Bill of Health"];
+                Fail [label="❌ Revision Needed"];
+                
+                Inst -> Upload;
+                Upload -> Check;
+                Check -> Pass;
+                Check -> Fail;
+                Fail -> Upload [label="Fix & Re-upload"];
+            }
+
+            # Phase 3
+            subgraph cluster_2 {
+                label = "Phase 3: District Approval";
+                style=filled; color="#fff9c4";
+                
+                node [fillcolor="#fff59d" color="#fbc02d"]; # District Yellow
+                Submit [label="📧 Submit to Mr. Anderson"];
+                Review [label="District Committee Review"];
+                Approve [label="📜 Approval Letter"];
+                
+                Pass -> Submit;
+                Submit -> Review;
+                Review -> Approve;
+                Review -> Fail [label="Denied"];
+            }
+
+            # Phase 4
+            subgraph cluster_3 {
+                label = "Phase 4: Implementation";
+                style=filled; color="#f3e5f5";
+                
+                node [fillcolor="#e1bee7" color="#7b1fa2"]; # School Purple
+                Principal [label="📍 Contact Principal"];
+                Start [label="📊 Begin Data Collection"];
+                
+                Approve -> Principal;
+                Principal -> Start [label="Site Permission"];
+            }
+        }
+        """)
     st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.")
 
     document_types = [
