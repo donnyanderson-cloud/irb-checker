@@ -123,7 +123,20 @@ def extract_text(uploaded_file):
 # MODE A: AP RESEARCH STUDENT
 # ==========================================
 if user_mode == "AP Research Student":
-    st.title("🛡️ AP Research IRB Self-Check Tool")
+    
+    # --- HEADER WITH CUSTOM LOGO ---
+    col_logo, col_text = st.columns([1, 8]) 
+    
+    with col_logo:
+        try:
+            # UPDATED FILENAME HERE:
+            st.image("APlogo.png", width=100)
+        except:
+            st.header("🛡️") 
+            
+    with col_text:
+        st.title("AP Research IRB Self-Check Tool")
+    
     # --- WORKFLOW GRAPHIC ---
     with st.expander("🗺️ View Research Workflow Map"):
         st.graphviz_chart("""
@@ -191,6 +204,7 @@ if user_mode == "AP Research Student":
             }
         }
         """)
+    
     st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
 
     document_types = [
@@ -230,7 +244,7 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- UPDATED PROMPT: STRICT 'NO EXAMPLES' POLICY ---
+    # --- SYSTEM PROMPT (Strict No-Examples) ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
     
@@ -258,7 +272,9 @@ if user_mode == "AP Research Student":
 else:
     st.title("🏛️ External Research Proposal Review")
     st.info("### 📋 Criteria for External Proposals")
+    
     st.markdown("All research requests involving Blount County Schools (BCS) are critiqued against District Standards (Policy 6.4001).&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
+    
     st.info("You may upload multiple PDF files for each section.")
 
     external_inputs = {}
