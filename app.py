@@ -348,9 +348,11 @@ if st.button("Run Compliance Check"):
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
         ]
 
-        # --- UPDATE: Switched to 1.5-flash to fix 429 Errors and increase quota ---
+        # --- FIX: UPDATE MODEL NAME ---
+        # "gemini-2.0-flash" is the stable standard for 2025/2026
+        # It has high rate limits compared to the experimental 2.5
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash', 
+            model_name='gemini-2.0-flash', 
             generation_config=generation_config, 
             safety_settings=safety_settings
         )
