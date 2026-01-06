@@ -337,9 +337,8 @@ if st.button("Run Compliance Check"):
         status.info("🔌 Connecting to AI Services...")
         genai.configure(api_key=api_key)
         
-        # 2. MODEL CONFIG
+        # 2. CONFIGURATION
         generation_config = {"temperature": 0.0, "top_p": 1, "top_k": 1, "max_output_tokens": 4096}
-        
         safety_settings = [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
@@ -359,41 +358,60 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. ROBUST REQUEST LOOP (The Fix)
-        # This list defines the fallback order. If one fails, it tries the next.
-        model_candidates = [
-            "gemini-1.5-flash",      # Best balance (Try first)
-            "gemini-1.5-flash-001",  # Specific version often fixes 404s
-            "gemini-1.5-flash-002",  # Newer specific version
-            "gemini-1.5-pro",        # Slower but powerful fallback
-            "gemini-pro"             # Old reliable (Legacy)
-        ]
-
-        success = False
+        # 4. SMART AUTO-DISCOVERY ENGINE
+        # This fixes the "404" and "Model Not Found" errors by asking the API what is available.
         response = None
+        success = False
         
-        with st.spinner("🤖 Analyzing... (Trying multiple models)"):
-            for model_name in model_candidates:
-                try:
-                    # Initialize the specific model
+        with st.spinner("🤖 Auto-detecting available models..."):
+            try:
+                # A. List all models available to YOUR specific key
+                all_models = list(genai.list_models())
+                
+                # B. Filter for models that generate text
+                valid_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
+                
+                if not valid_models:
+                    st.error("❌ Your API Key is valid, but has no access to text models. Please create a new key.")
+                else:
+                    # C. Smart Selection: Find the best model in your list
+                    # We prefer "1.5-flash" (High Limit) -> "pro" (Standard) -> "2.0/2.5" (Low Limit)
+                    chosen_model_name = None
+                    
+                    # Preference Priority List
+                    priorities = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"]
+                    
+                    for p in priorities:
+                        # Find the first model in your list that matches a priority
+                        found = next((m for m in valid_models if p in m), None)
+                        if found:
+                            chosen_model_name = found
+                            break
+                    
+                    # Fallback: If no priority model found, just take the first valid one available
+                    if not chosen_model_name:
+                        chosen_model_name = valid_models[0]
+                        
+                    # Clean the name (remove 'models/' prefix if present)
+                    clean_name = chosen_model_name.split("/")[-1] if "/" in chosen_model_name else chosen_model_name
+                    
+                    st.info(f"🔹 Connected to: **{clean_name}**")
+                    
+                    # D. Run the Model
                     model = genai.GenerativeModel(
-                        model_name=model_name, 
+                        model_name=clean_name, 
                         generation_config=generation_config, 
                         safety_settings=safety_settings
                     )
                     
-                    # Attempt generation
                     response = model.generate_content(user_message)
                     success = True
-                    st.toast(f"✅ Success! Used model: {model_name}", icon="🎉")
-                    break # Stop the loop if we succeeded
-                    
-                except Exception as e:
-                    # Log the failure but continue to the next model
-                    print(f"Model {model_name} failed: {e}")
-                    continue
 
-        # 5. DISPLAY RESULTS OR ERROR
+            except Exception as e:
+                status.error("❌ Connection Failed")
+                st.error(f"Error details: {e}")
+
+        # 5. DISPLAY RESULTS
         if success and response:
             status.success("✅ Analysis Complete!")
             st.markdown("---")
@@ -426,7 +444,3 @@ if st.button("Run Compliance Check"):
                 Please correct the items listed in the checklist above before emailing the district. 
                 **Non-compliant proposals will be automatically returned.**
                 """)
-        else:
-            # If we went through ALL models and none worked
-            status.error("❌ All AI models failed.")
-            st.error("Could not connect to any Gemini models. Please check your API Key.")
