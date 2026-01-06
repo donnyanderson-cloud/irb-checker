@@ -244,7 +244,7 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (Strict No-Examples) ---
+    # --- SYSTEM PROMPT (UPDATED FOR BETTER ACTION STEPS) ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
     
@@ -252,8 +252,13 @@ if user_mode == "AP Research Student":
     
     **STRICT CONSTRAINT:** 1. Do NOT rewrite the student's text.
     2. Do NOT provide examples of 'correct' verbiage or phrases to copy.
-    3. You must be DESCRIPTIVE and DIRECTIVE only. Identify the missing component and reference the policy requirement, but the student must draft the correction themselves.
-
+    3. You must be DESCRIPTIVE and DIRECTIVE. 
+    
+    **HOW TO GENERATE ACTION STEPS:**
+    If a section is missing or non-compliant, you must explain the specific *concept* or *data point* that is missing.
+    * *Bad:* "Add a data destruction plan."
+    * *Good:* "The proposal mentions collecting surveys but fails to specify **when** (date) and **how** (shredding/deletion) the data will be destroyed. Policy 6.4001 requires an explicit timeline for data disposal."
+    
     CRITERIA (Policy 6.4001 & Federal Rules):
     1. PROHIBITED: Political affiliation, voting history, religious practices, firearm ownership. (Strict Fail).
     2. SENSITIVE: Mental health, sexual behavior, illegal acts, income. Requires 'Active Written Consent'.
@@ -263,7 +268,7 @@ if user_mode == "AP Research Student":
     OUTPUT FORMAT:
     - STATUS: [✅ PASS] or [❌ REVISION NEEDED]
     - FINDINGS: Bullet points of observed status.
-    - ACTION: Describe the specific gap in compliance (e.g., "The proposal fails to define a method for data destruction as required by Policy 6.4001."). Do not offer a sample sentence.
+    - ACTION: Provide detailed instructions on what information must be added to satisfy the policy. Reference specific missing variables (e.g., dates, locations, names, methods).
     """
 
 # ==========================================
@@ -301,12 +306,17 @@ else:
                 combined_text += extract_text(f) + "\n\n"
             external_inputs["INSTRUMENTS"] = combined_text
 
+    # --- SYSTEM PROMPT (UPDATED FOR BETTER ACTION STEPS) ---
     system_prompt = """
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
     TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
 
     **STRICT CONSTRAINT:**
     Do not provide specific rewrite examples or sample verbiage. Provide a professional description of the policy violation or missing element only.
+
+    **GUIDANCE FOR FEEDBACK:**
+    Your "Action Items" must be specific enough to guide the researcher without drafting the text for them.
+    * *Example:* If the benefit is vague, state: "The proposal lists general academic benefits but lacks a specific, quantifiable benefit to Blount County Schools as required by the district research rubric."
 
     CRITICAL COMPLIANCE CHECKS:
     1. BENEFIT TO DISTRICT: Must explicitly state "projected value of the study to Blount County."
@@ -318,8 +328,12 @@ else:
     OUTPUT FORMAT:
     ### 🚦 Executive Summary
     **Status:** [✅ RECOMMEND FOR REVIEW] or [❌ REVISION NEEDED]
+    
     ### 🔍 Compliance Checklist
-    ### 📝 Detailed Findings & Action Items (Descriptive Only - No Rewrites)
+    (List the 5 critical checks above and their status)
+    
+    ### 📝 Detailed Findings & Action Items
+    (Provide specific feedback on *missing variables* or *policy gaps* without offering rewrite text.)
     """
     
     student_inputs = external_inputs
@@ -359,8 +373,8 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. MODEL SELECTOR (UPDATED FOR YOUR KEYS)
-        # We target "Lite" models found in your list which have higher free quotas.
+        # 4. MODEL SELECTOR
+        # We target the high-quota "Lite" models found in your specific API Key list.
         target_models = [
             "gemini-2.5-flash-lite",      # 🥇 Confirmed in your list
             "gemini-flash-lite-latest",   # 🥈 Alias for the above
