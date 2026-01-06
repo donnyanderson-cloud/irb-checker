@@ -358,61 +358,46 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. SMART AUTO-DISCOVERY ENGINE
-        # This fixes the "404" and "Model Not Found" errors by asking the API what is available.
+        # 4. FAIL-SAFE CONNECTION LOOP
+        # We explicitly try the "High Quota" models first.
+        # We avoid "gemini-pro" or "gemini-2.0" because they have low/zero limits.
+        
+        fallback_models = [
+            "gemini-1.5-flash",          # Standard Alias
+            "gemini-1.5-flash-latest",   # Latest Alias
+            "gemini-1.5-flash-001",      # Specific Stable Version (Most likely to work)
+            "gemini-1.5-flash-002",      # Newer Stable Version
+            "gemini-1.5-flash-8b",       # Lightweight Version
+            "models/gemini-1.5-flash-001" # Full path fallback
+        ]
+
         response = None
         success = False
-        
-        with st.spinner("🤖 Auto-detecting available models..."):
-            try:
-                # A. List all models available to YOUR specific key
-                all_models = list(genai.list_models())
-                
-                # B. Filter for models that generate text
-                valid_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
-                
-                if not valid_models:
-                    st.error("❌ Your API Key is valid, but has no access to text models. Please create a new key.")
-                else:
-                    # C. Smart Selection: Find the best model in your list
-                    # We prefer "1.5-flash" (High Limit) -> "pro" (Standard) -> "2.0/2.5" (Low Limit)
-                    chosen_model_name = None
-                    
-                    # Preference Priority List
-                    priorities = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"]
-                    
-                    for p in priorities:
-                        # Find the first model in your list that matches a priority
-                        found = next((m for m in valid_models if p in m), None)
-                        if found:
-                            chosen_model_name = found
-                            break
-                    
-                    # Fallback: If no priority model found, just take the first valid one available
-                    if not chosen_model_name:
-                        chosen_model_name = valid_models[0]
-                        
-                    # Clean the name (remove 'models/' prefix if present)
-                    clean_name = chosen_model_name.split("/")[-1] if "/" in chosen_model_name else chosen_model_name
-                    
-                    st.info(f"🔹 Connected to: **{clean_name}**")
-                    
-                    # D. Run the Model
+        connected_model = ""
+
+        with st.spinner("🤖 Connecting to High-Quota Model..."):
+            for model_name in fallback_models:
+                try:
+                    # Try to initialize and run this specific model
                     model = genai.GenerativeModel(
-                        model_name=clean_name, 
+                        model_name=model_name, 
                         generation_config=generation_config, 
                         safety_settings=safety_settings
                     )
                     
+                    # Test generation
                     response = model.generate_content(user_message)
                     success = True
-
-            except Exception as e:
-                status.error("❌ Connection Failed")
-                st.error(f"Error details: {e}")
+                    connected_model = model_name
+                    break # It worked! Stop loop.
+                    
+                except Exception as e:
+                    # If 404 (Not Found) or 429 (Limit), we just try the next one
+                    continue
 
         # 5. DISPLAY RESULTS
         if success and response:
+            st.toast(f"✅ Connected to: {connected_model}", icon="⚡")
             status.success("✅ Analysis Complete!")
             st.markdown("---")
             st.markdown(response.text)
@@ -444,3 +429,11 @@ if st.button("Run Compliance Check"):
                 Please correct the items listed in the checklist above before emailing the district. 
                 **Non-compliant proposals will be automatically returned.**
                 """)
+        else:
+            status.error("❌ Connection Failed")
+            st.error("""
+            **All high-quota models failed.**
+            1. Your API key may be invalid or expired.
+            2. You may have used your entire monthly allowance.
+            3. Try generating a new **Free API Key** at https://aistudio.google.com/app/apikey
+            """)
