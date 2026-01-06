@@ -323,7 +323,6 @@ else:
     """
     
     student_inputs = external_inputs
-
 # ==========================================
 # EXECUTION LOGIC
 # ==========================================
@@ -348,15 +347,6 @@ if st.button("Run Compliance Check"):
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
         ]
 
-        # --- FIX: UPDATE MODEL NAME ---
-        # "gemini-2.0-flash" is the stable standard for 2025/2026
-        # It has high rate limits compared to the experimental 2.5
-        model = genai.GenerativeModel(
-            model_name='gemini-2.0-flash', 
-            generation_config=generation_config, 
-            safety_settings=safety_settings
-        )
-
         # 3. PREPARING TEXT
         status.info("📄 Reading your PDF files...")
         user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
@@ -369,51 +359,74 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. SENDING REQUEST
-        with st.spinner("🤖 Analyzing against District Policy..."):
-            try:
-                response = model.generate_content(user_message)
-                status.success("✅ Analysis Complete!")
-                st.markdown("---")
-                
-                # DISPLAY THE AI ANALYSIS
-                st.markdown(response.text)
-                
-                # --- CONDITIONAL NEXT STEPS (COLOR MATCHED) ---
-                st.markdown("---")
-                st.subheader("📬 Next Steps")
-                
-                if user_mode == "AP Research Student":
-                    # GREEN BOX FOR PASS
-                    st.success("""
-                    **✅ If all of your artifacts have passed:**
-                    1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
-                    2. Make sure that all files that were AI screened are shared with Mr. Anderson.
-                    """)
+        # 4. ROBUST REQUEST LOOP (The Fix)
+        # This list defines the fallback order. If one fails, it tries the next.
+        model_candidates = [
+            "gemini-1.5-flash",      # Best balance (Try first)
+            "gemini-1.5-flash-001",  # Specific version often fixes 404s
+            "gemini-1.5-flash-002",  # Newer specific version
+            "gemini-1.5-pro",        # Slower but powerful fallback
+            "gemini-pro"             # Old reliable (Legacy)
+        ]
+
+        success = False
+        response = None
+        
+        with st.spinner("🤖 Analyzing... (Trying multiple models)"):
+            for model_name in model_candidates:
+                try:
+                    # Initialize the specific model
+                    model = genai.GenerativeModel(
+                        model_name=model_name, 
+                        generation_config=generation_config, 
+                        safety_settings=safety_settings
+                    )
                     
-                    # RED BOX FOR FAIL
-                    st.error("""
-                    **❌ If your Status is REVISION NEEDED:**
-                    * Review the "Action Items" above.
-                    * Edit your documents to address the missing policy requirements.
-                    * **Re-run this check** until you get a PASS status.
-                    """)
+                    # Attempt generation
+                    response = model.generate_content(user_message)
+                    success = True
+                    st.toast(f"✅ Success! Used model: {model_name}", icon="🎉")
+                    break # Stop the loop if we succeeded
                     
-                else: # External Researcher
-                    # GREEN BOX FOR PASS
-                    st.success("""
-                    **✅ If all of your artifacts have passed:**
-                    Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
-                    *⚠️ Make sure that all file sharing options have been addressed prior to your email submission.*
-                    """)
-                    
-                    # RED BOX FOR FAIL
-                    st.error("""
-                    **❌ If the Analysis says "REVISION NEEDED":**
-                    Please correct the items listed in the checklist above before emailing the district. 
-                    **Non-compliant proposals will be automatically returned.**
-                    """)
-                
-            except Exception as e:
-                status.error("❌ Analysis Failed")
-                st.error(f"Error details: {e}")
+                except Exception as e:
+                    # Log the failure but continue to the next model
+                    print(f"Model {model_name} failed: {e}")
+                    continue
+
+        # 5. DISPLAY RESULTS OR ERROR
+        if success and response:
+            status.success("✅ Analysis Complete!")
+            st.markdown("---")
+            st.markdown(response.text)
+            
+            # --- CONDITIONAL NEXT STEPS ---
+            st.markdown("---")
+            st.subheader("📬 Next Steps")
+            
+            if user_mode == "AP Research Student":
+                st.success("""
+                **✅ If all of your artifacts have passed:**
+                1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
+                2. Make sure that all files that were AI screened are shared with Mr. Anderson.
+                """)
+                st.error("""
+                **❌ If your Status is REVISION NEEDED:**
+                * Review the "Action Items" above.
+                * Edit your documents to address the missing policy requirements.
+                * **Re-run this check** until you get a PASS status.
+                """)
+            else: 
+                st.success("""
+                **✅ If all of your artifacts have passed:**
+                Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
+                *⚠️ Make sure that all file sharing options have been addressed prior to your email submission.*
+                """)
+                st.error("""
+                **❌ If the Analysis says "REVISION NEEDED":**
+                Please correct the items listed in the checklist above before emailing the district. 
+                **Non-compliant proposals will be automatically returned.**
+                """)
+        else:
+            # If we went through ALL models and none worked
+            status.error("❌ All AI models failed.")
+            st.error("Could not connect to any Gemini models. Please check your API Key.")
