@@ -216,17 +216,18 @@ if user_mode == "AP Research Student":
         }
         """)
     
-    st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
-
-    document_types = [
-        "Research Proposal",
-        "Survey / Interview Questions",
-        "Parent Permission Form",
-        "Principal/District Permission Forms"
-    ]
-    selected_docs = st.multiselect("Select documents to screen:", document_types, default=["Research Proposal"])
+# --- [INSERT #3 HERE] --- 
+    # Replace the old bold text line with this new block:
+    st.markdown("""
+    **For BCS Students:** This AI tool is an **optional resource** to help you self-check your work against **Policy 6.4001** before submitting to your School Committee.
     
-    student_inputs = {}
+    * **Final Approval:** Your School IRB Committee.
+    * **District Role:** Consulting support for complex cases only.
+    """)
+    # ------------------------
+
+    # (The code continues here with the document selectors...)
+    st.markdown("Check the sidebar resource to **confirm file-naming standards** for each of your files.")
 
     if "Research Proposal" in selected_docs:
         st.markdown("### 1. Research Proposal")
