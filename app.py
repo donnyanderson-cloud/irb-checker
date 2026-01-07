@@ -54,8 +54,8 @@ with st.sidebar:
             * `Lastname_Institution_Proposal_2025.pdf`
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
-
-    # 4. E-SIGNATURE STANDARDS
+            
+    # 4. NEW: E-SIGNATURE STANDARDS
     with st.expander("✍️ E-Signature Legal Standards"):
         st.markdown("""
         **📋 Legal Summary: E-Signatures for Student Surveys**
@@ -72,45 +72,44 @@ with st.sidebar:
         1.  **Authentication:** Prove the signer is the parent (e.g., "Link sent to verified parent email," "Student ID Check").
         2.  **Intent:** A deliberate action (Checkbox: "By checking this, I provide legal signature").
         3.  **Integrity:** The form cannot be editable after signing.
-        4.  **Retention:** Parent must get a copy; School keeps an audit trail (Timestamp/IP).
-
-        **✅ Compliance Checklist**
-        [ ] Is the link sent to a verified email on file?
-        [ ] Does the parent have an opt-out or paper alternative?
-        [ ] Does the system generate an audit trail (Timestamp + IP)?
+        4.  **Retention:** Parent must get a copy; School keeps an audit trail (Timestamp + IP).
         """)
     
     st.markdown("---")
     
-    # 5. KEY MANAGEMENT (Legacy Mode for Stability)
+    # 5. KEY MANAGEMENT (SAFE LOAD)
+    # We explicitly force the list to reload from secrets
     district_keys = []
-    if "DISTRICT_KEYS" in st.secrets:
-        district_keys = st.secrets["DISTRICT_KEYS"]
-        random.shuffle(district_keys) 
-        
-        if user_mode == "AP Research Student":
-            st.success(f"✅ District License Pool Active ({len(district_keys)} Keys)")
-            with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-                st.info("Classroom blocked? Use your own free key to bypass the wait.")
-                st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-                user_key = st.text_input("Paste your personal key:", type="password")
-                if user_key:
-                    district_keys = [user_key]
-                    st.success("✅ Using Personal Key")
-        else:
-            st.success("✅ District License Active")
     
-    elif "GOOGLE_API_KEY" in st.secrets:
-        district_keys = [st.secrets["GOOGLE_API_KEY"]]
-        st.success("✅ Single Key Mode Active")
-
-    else:
-        st.markdown("### 🔑 Need an API Key?")
-        st.info("System requires an API key.")
-        st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-        user_key = st.text_input("Enter Google API Key", type="password")
-        if user_key:
-            district_keys = [user_key]
+    # Try/Except block to catch secret formatting errors
+    try:
+        if "DISTRICT_KEYS" in st.secrets:
+            # Check if it's a list or a string needing splitting
+            keys_raw = st.secrets["DISTRICT_KEYS"]
+            if isinstance(keys_raw, list):
+                district_keys = keys_raw
+            elif isinstance(keys_raw, str):
+                district_keys = [k.strip() for k in keys_raw.split(",")]
+                
+            random.shuffle(district_keys)
+            
+            if user_mode == "AP Research Student":
+                st.success(f"✅ District License Pool Active ({len(district_keys)} Keys)")
+                with st.expander("🚀 Performance Boost (Use Your Own Key)"):
+                    st.info("Classroom blocked? Use your own free key to bypass the wait.")
+                    st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
+                    user_key = st.text_input("Paste your personal key:", type="password")
+                    if user_key:
+                        district_keys = [user_key]
+                        st.success("✅ Using Personal Key")
+            else:
+                st.success("✅ District License Active")
+        elif "GOOGLE_API_KEY" in st.secrets:
+            district_keys = [st.secrets["GOOGLE_API_KEY"]]
+            st.success("✅ Single Key Mode Active")
+    except Exception as e:
+        st.error(f"Error loading keys: {e}")
+        district_keys = []
 
     st.markdown("---")
     
@@ -150,17 +149,14 @@ if user_mode == "AP Research Student":
     with col_text:
         st.title("AP Research IRB Self-Check Tool")
     
-    # --- WORKFLOW GRAPHIC (UPDATED 2026) ---
-    with st.expander("🗺️ View New 2026 Workflow Map"):
+    # --- WORKFLOW GRAPHIC ---
+    with st.expander("🗺️ View Research Workflow Map"):
         st.graphviz_chart("""
         digraph {
             rankdir=TB;
             node [shape=box, style="filled,rounded", fontname="Sans-Serif"];
-            
-            # Colors
             node [fillcolor="#e1f5fe" color="#01579b"]; # Student Blue
             
-            # Phase 1: Creation
             subgraph cluster_0 {
                 label = "Phase 1: Development";
                 style=dashed; color=grey;
@@ -168,64 +164,46 @@ if user_mode == "AP Research Student":
                 Inst [label="Create Instruments"];
                 Draft -> Inst;
             }
-
-            # Phase 2: Optional AI Check
             subgraph cluster_1 {
-                label = "Phase 2: Optional Self-Check";
+                label = "Phase 2: AI Compliance Check";
                 style=filled; color="#e8f5e9";
                 node [fillcolor="#c8e6c9" color="#2e7d32"]; # AI Green
-                
-                AI_Tool [label="🤖 Run AI Compliance Tool"];
-                Feedback [label="🔍 Review AI Findings"];
-                Refine [label="✨ Refine Proposal"];
-                
-                Inst -> AI_Tool [style="dashed" label="Optional"];
-                AI_Tool -> Feedback;
-                Feedback -> Refine;
+                Upload [label="🚀 Upload to AI Portal"];
+                Check [label="⚠️ AI Review"];
+                Pass [label="✅ Clean Bill of Health"];
+                Fail [label="❌ Revision Needed"];
+                Inst -> Upload;
+                Upload -> Check;
+                Check -> Pass;
+                Check -> Fail;
+                Fail -> Upload [label="Fix & Re-upload"];
             }
-
-            # Phase 3: School Approval (The New Authority)
             subgraph cluster_2 {
-                label = "Phase 3: School Approval";
+                label = "Phase 3: District Approval";
                 style=filled; color="#fff9c4";
                 node [fillcolor="#fff59d" color="#fbc02d"]; # District Yellow
-                
-                Submit [label="🏫 Submit to School IRB"];
-                Review [label="School Committee Review"];
-                District [label="🏢 District Consultation\n(Complex Cases Only)"];
-                Approve [label="📜 Final Approval"];
-                
-                Inst -> Submit [label="Direct"];
-                Refine -> Submit [label="After AI Fixes"];
-                
+                Submit [label="📧 Submit to Mr. Anderson"];
+                Review [label="District Committee Review"];
+                Approve [label="📜 Approval Letter"];
+                Pass -> Submit;
                 Submit -> Review;
                 Review -> Approve;
-                Review -> District [label="If Guidance Needed"];
-                District -> Review [label="Advisory Opinion"];
+                Review -> Fail [label="Denied"];
             }
-
-            # Phase 4: Implementation
             subgraph cluster_3 {
                 label = "Phase 4: Implementation";
                 style=filled; color="#f3e5f5";
                 node [fillcolor="#e1bee7" color="#7b1fa2"]; # School Purple
+                Principal [label="📍 Contact Principal"];
                 Start [label="📊 Begin Data Collection"];
-                
-                Approve -> Start;
+                Approve -> Principal;
+                Principal -> Start [label="Site Permission"];
             }
         }
         """)
     
-    # --- UPDATED VERBIAGE ---
-    st.markdown("""
-    **For BCS Students:** This AI tool is an **optional resource** to help you self-check your work against **Policy 6.4001** before submitting to your School Committee.
-    
-    * **Final Approval:** Your School IRB Committee.
-    * **District Role:** Consulting support for complex cases only.
-    """)
-    st.markdown("Check the sidebar resource to **confirm file-naming standards** for each of your files.")
+    st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
 
-    # --- DOCUMENT SELECTORS (THIS WAS MISSING BEFORE) ---
     document_types = [
         "Research Proposal",
         "Survey / Interview Questions",
@@ -263,7 +241,7 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (WITH E-SIGNATURE LOGIC) ---
+    # --- SYSTEM PROMPT (E-SIGN COMPATIBLE) ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
     
@@ -366,7 +344,7 @@ else:
     student_inputs = external_inputs
 
 # ==========================================
-# EXECUTION LOGIC (LEGACY RETRY + NEW ENDING)
+# EXECUTION LOGIC (GENTLE ROTATION)
 # ==========================================
 if st.button("Run Compliance Check"):
     if not district_keys:
@@ -378,6 +356,7 @@ if st.button("Run Compliance Check"):
         status = st.empty() 
         status.info("🔌 Connecting to AI Services...")
         
+        # Temp 0.3 prevents repetition, top_k 40 is standard
         generation_config = {
             "temperature": 0.3, 
             "top_p": 0.95, 
@@ -404,15 +383,16 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. LEGACY RETRY LOOP
-        # "Flash" and "Pro" are exhausted. We are now targeting the 2024-2025 "Workhorses".
-        # These models often have separate, forgotten quota buckets.
+        # 4. GENTLE KEY ROTATION
+        # We try models in a specific order:
+        # 1. Flash-8b (Best for High Volume)
+        # 2. Flash-Lite (Backup)
+        # 3. Legacy Flash (Old reliable)
         
         models_to_try = [
-            "gemini-1.5-flash-001",     # 1. First Stability Release (Often ignored)
-            "gemini-1.5-flash-002",     # 2. Second Release
-            "gemini-1.5-pro-001",       # 3. Old Pro
-            "gemini-1.0-pro"            # 4. The Original (Separate quota entirely)
+            "gemini-1.5-flash-8b", 
+            "gemini-2.5-flash-lite", 
+            "gemini-1.5-flash"
         ]
         
         response = None
@@ -420,8 +400,11 @@ if st.button("Run Compliance Check"):
         final_key_index = 0
         final_model_name = ""
 
-        with st.spinner("🤖 Switching to Legacy Grids (1.0/1.5)..."):
+        with st.spinner(f"🤖 Cycling through {len(district_keys)} keys (Gentle Mode)..."):
             for i, key in enumerate(district_keys):
+                # VITAL: Small sleep to prevent IP Ban from Google
+                if i > 0: time.sleep(0.5)
+                
                 genai.configure(api_key=key)
                 
                 for model_name in models_to_try:
@@ -446,7 +429,7 @@ if st.button("Run Compliance Check"):
         # 5. DISPLAY RESULTS
         if success and response:
             if final_key_index > 1:
-                st.toast(f"Success on Key #{final_key_index} ({final_model_name})", icon="🔀")
+                st.toast(f"Switched to Key #{final_key_index} ({final_model_name})", icon="🔀")
             else:
                 st.toast(f"Connected: {final_model_name}", icon="⚡")
                 
@@ -454,35 +437,39 @@ if st.button("Run Compliance Check"):
             st.markdown("---")
             st.markdown(response.text)
             
-            # --- CONDITIONAL NEXT STEPS (UPDATED FOR SCHOOL-BASED APPROVAL) ---
             st.markdown("---")
             st.subheader("📬 Next Steps")
             
             if user_mode == "AP Research Student":
                 st.success("""
-                **✅ If your proposal looks good:**
-                1. Download or Print this AI Report.
-                2. Submit your Proposal + this Report to your **School IRB Committee** for final approval.
-                *Note: You do not need to email the District unless your School Committee specifically requests a consultation.*
+                **✅ If all of your artifacts have passed:**
+                1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
+                2. Make sure that all files that were AI screened are shared with Mr. Anderson.
                 """)
-                st.info("""
-                **❌ If "REVISION NEEDED":**
-                Use the "Action Items" above to improve your draft before submitting it to your School Committee. This will speed up your approval process!
+                st.error("""
+                **❌ If your Status is REVISION NEEDED:**
+                * Review the "Action Items" above.
+                * Edit your documents to address the missing policy requirements.
+                * **Re-run this check** until you get a PASS status.
                 """)
             else: 
-                # External Researchers still go to District
                 st.success("""
                 **✅ If all of your artifacts have passed:**
                 Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
                 *⚠️ Make sure that all file sharing options have been addressed prior to your email submission.*
                 """)
+                st.error("""
+                **❌ If the Analysis says "REVISION NEEDED":**
+                Please correct the items listed in the checklist above before emailing the district. 
+                **Non-compliant proposals will be automatically returned.**
+                """)
         else:
             status.error("❌ Connection Failed")
             st.error(f"""
-            **Total District Quota Exhausted.**
+            **System Exhausted:** We tried {len(district_keys)} keys and all were rejected.
             
-            We tried 30 keys on Modern models AND Legacy models. All were rejected.
-            
-            **IMMEDIATE SOLUTION:**
-            Ask a student to generate a free Personal Key at **https://aistudio.google.com/app/apikey** and paste it into the "Performance Boost" box in the sidebar. This will work immediately.
+            **Diagnosis:**
+            1. **Reboot Required:** If you just added keys, you MUST reboot the app for them to load.
+            2. **IP Limit:** Too many requests in 1 second. (This updated code fixes this).
+            3. **Bad Key Format:** Check your secrets.toml file for missing commas.
             """)
