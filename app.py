@@ -57,49 +57,39 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # 4. KEY MANAGEMENT
-    api_key = None
-    
-    # Check for the list of keys (Primary Method for Classrooms)
+    # 4. KEY MANAGEMENT (LOAD ALL KEYS)
+    # We load the entire list of keys here so we can cycle through them later.
+    district_keys = []
     if "DISTRICT_KEYS" in st.secrets:
-        key_pool = st.secrets["DISTRICT_KEYS"]
-        # We shuffle the pool to ensure we don't just hit the first key repeatedly
-        random.shuffle(key_pool)
-        district_key = key_pool[0]
-        api_key = district_key
+        district_keys = st.secrets["DISTRICT_KEYS"]
+        # Shuffle them so students don't all hammer Key #1 at the same time
+        random.shuffle(district_keys)
         
         if user_mode == "AP Research Student":
-            st.success(f"✅ District License Active")
+            st.success(f"✅ District License Pool Active ({len(district_keys)} Keys)")
             with st.expander("🚀 Performance Boost (Use Your Own Key)"):
                 st.info("Classroom blocked? Use your own free key to bypass the wait.")
                 st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
                 user_key = st.text_input("Paste your personal key:", type="password")
                 if user_key:
-                    api_key = user_key
+                    # If user provides a key, we prioritize it by making it the ONLY key in the list
+                    district_keys = [user_key]
                     st.success("✅ Using Personal Key")
         else:
             st.success("✅ District License Active")
-
-    # Fallback for Single Key (Legacy Method)
+    
+    # Fallback for legacy single-key setup
     elif "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        if user_mode == "AP Research Student":
-            st.success("✅ District License Active")
-            with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-                st.info("Classroom blocked? Use your own free key.")
-                st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-                user_key = st.text_input("Paste your personal key:", type="password")
-                if user_key:
-                    api_key = user_key
-                    st.success("✅ Using Personal Key")
-        else:
-            st.success("✅ District License Active")
+        district_keys = [st.secrets["GOOGLE_API_KEY"]]
+        st.success("✅ Single Key Mode Active")
 
     else:
         st.markdown("### 🔑 Need an API Key?")
         st.info("System requires an API key.")
         st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-        api_key = st.text_input("Enter Google API Key", type="password")
+        user_key = st.text_input("Enter Google API Key", type="password")
+        if user_key:
+            district_keys = [user_key]
 
     st.markdown("---")
     
@@ -132,7 +122,6 @@ if user_mode == "AP Research Student":
     
     with col_logo:
         try:
-            # UPDATED FILENAME HERE:
             st.image("APlogo.png", width=100)
         except:
             st.header("🛡️") 
@@ -146,11 +135,8 @@ if user_mode == "AP Research Student":
         digraph {
             rankdir=TB;
             node [shape=box, style="filled,rounded", fontname="Sans-Serif"];
-            
-            # Colors
             node [fillcolor="#e1f5fe" color="#01579b"]; # Student Blue
             
-            # Phase 1
             subgraph cluster_0 {
                 label = "Phase 1: Development";
                 style=dashed; color=grey;
@@ -158,50 +144,38 @@ if user_mode == "AP Research Student":
                 Inst [label="Create Instruments"];
                 Draft -> Inst;
             }
-
-            # Phase 2
             subgraph cluster_1 {
                 label = "Phase 2: AI Compliance Check";
                 style=filled; color="#e8f5e9";
-                
                 node [fillcolor="#c8e6c9" color="#2e7d32"]; # AI Green
                 Upload [label="🚀 Upload to AI Portal"];
                 Check [label="⚠️ AI Review"];
                 Pass [label="✅ Clean Bill of Health"];
                 Fail [label="❌ Revision Needed"];
-                
                 Inst -> Upload;
                 Upload -> Check;
                 Check -> Pass;
                 Check -> Fail;
                 Fail -> Upload [label="Fix & Re-upload"];
             }
-
-            # Phase 3
             subgraph cluster_2 {
                 label = "Phase 3: District Approval";
                 style=filled; color="#fff9c4";
-                
                 node [fillcolor="#fff59d" color="#fbc02d"]; # District Yellow
                 Submit [label="📧 Submit to Mr. Anderson"];
                 Review [label="District Committee Review"];
                 Approve [label="📜 Approval Letter"];
-                
                 Pass -> Submit;
                 Submit -> Review;
                 Review -> Approve;
                 Review -> Fail [label="Denied"];
             }
-
-            # Phase 4
             subgraph cluster_3 {
                 label = "Phase 4: Implementation";
                 style=filled; color="#f3e5f5";
-                
                 node [fillcolor="#e1bee7" color="#7b1fa2"]; # School Purple
                 Principal [label="📍 Contact Principal"];
                 Start [label="📊 Begin Data Collection"];
-                
                 Approve -> Principal;
                 Principal -> Start [label="Site Permission"];
             }
@@ -247,7 +221,7 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (UPDATED FOR BETTER ACTION STEPS) ---
+    # --- SYSTEM PROMPT ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
     
@@ -309,7 +283,7 @@ else:
                 combined_text += extract_text(f) + "\n\n"
             external_inputs["INSTRUMENTS"] = combined_text
 
-    # --- SYSTEM PROMPT (UPDATED FOR BETTER ACTION STEPS) ---
+    # --- SYSTEM PROMPT (EXTERNAL) ---
     system_prompt = """
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
     TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
@@ -342,10 +316,10 @@ else:
     student_inputs = external_inputs
 
 # ==========================================
-# EXECUTION LOGIC (QUOTA FIX)
+# EXECUTION LOGIC (WITH KEY ROTATION)
 # ==========================================
 if st.button("Run Compliance Check"):
-    if not api_key:
+    if not district_keys:
         st.error("⚠️ Please enter a Google API Key in the sidebar.")
     elif not student_inputs:
         st.warning("Please upload at least one document.")
@@ -353,7 +327,6 @@ if st.button("Run Compliance Check"):
         # 1. SETUP
         status = st.empty() 
         status.info("🔌 Connecting to AI Services...")
-        genai.configure(api_key=api_key)
         
         # 2. CONFIGURATION
         generation_config = {
@@ -382,46 +355,47 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. ROBUST MODEL SELECTOR
-        # TARGET: gemini-1.5-flash-8b (The high-efficiency model)
-        # BACKUP: gemini-flash-lite-latest (The alias from your list)
+        # 4. ROBUST KEY ROTATION LOOP
+        # We try every key in the pool. If one is blocked (429), we instantly swap to the next.
         
-        target_models = [
-            "gemini-1.5-flash-8b",        # 🥇 High Quota / Low Cost
-            "gemini-1.5-flash-002",       # 🥈 Stable Flash
-            "gemini-flash-lite-latest",   # 🥉 Alias from your list
-            "models/gemini-1.5-flash",    # 🚨 Force full path
-            "gemini-1.5-pro-latest"       # 🚨 Slower but works
-        ]
-
+        # This list targets the exact models we saw in your diagnostic list.
+        # We prioritize the "Lite" model because we know it exists.
+        target_model_name = "gemini-2.5-flash-lite" 
+        
         response = None
         success = False
-        connected_model = ""
+        keys_tried = 0
 
-        with st.spinner("🤖 Connecting..."):
-            for model_name in target_models:
+        with st.spinner("🤖 Connecting to AI Grid..."):
+            for key in district_keys:
+                keys_tried += 1
                 try:
-                    # Initialize
+                    # Configure with CURRENT key in the loop
+                    genai.configure(api_key=key)
+                    
                     model = genai.GenerativeModel(
-                        model_name=model_name, 
+                        model_name=target_model_name, 
                         generation_config=generation_config, 
                         safety_settings=safety_settings
                     )
-                    # Attempt Generation
+                    
+                    # Try to generate
                     response = model.generate_content(user_message)
                     success = True
-                    connected_model = model_name
-                    break # Stop if successful
+                    break # Success! Exit the loop.
                     
                 except Exception as e:
-                    # If quota exceeded or 404, try the next one
-                    # We print a small warning to the console/log only
-                    print(f"Skipping {model_name}: {e}")
+                    # If this key fails (429 Quota), we just continue to the next key
+                    # st.write(f"Key {keys_tried} failed: {e}") # Uncomment for debug
                     continue
 
         # 5. DISPLAY RESULTS
         if success and response:
-            st.toast(f"✅ Connected to: {connected_model}", icon="⚡")
+            if keys_tried > 1:
+                st.toast(f"⚠️ Heavy Traffic: Switched to Key #{keys_tried}", icon="🔀")
+            else:
+                st.toast("✅ Connected on first attempt", icon="⚡")
+                
             status.success("✅ Analysis Complete!")
             st.markdown("---")
             st.markdown(response.text)
@@ -455,13 +429,8 @@ if st.button("Run Compliance Check"):
                 """)
         else:
             status.error("❌ Connection Failed")
-            st.error("""
-            **Critical Error:** All AI models rejected the connection.
+            st.error(f"""
+            **System Overload:** All {len(district_keys)} license keys are currently exhausted.
             
-            **Diagnosis:**
-            1. Your "District Keys" have hit the daily Limit (20) for the new models.
-            2. The stable 1.5 models are blocked by your account settings.
-            
-            **Solution:**
-            Please create a NEW Free API Key using a personal Gmail account (not school email) and paste it into the "Performance Boost" box in the sidebar.
+            **Please try again in 1 minute**, or use a personal key in the sidebar.
             """)
