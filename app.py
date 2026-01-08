@@ -110,13 +110,24 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 6. DIAGNOSTICS
+    # 6. DIAGNOSTICS & UPDATES
     if user_mode == "AP Research Student":
         try:
             lib_ver = importlib.metadata.version("google-generativeai")
         except:
             lib_ver = "Unknown"
         st.caption(f"⚙️ System Version: {lib_ver}")
+        
+        # --- NEW: CHANGELOG (CLEAN) ---
+        with st.expander("Recent Updates"):
+            st.caption("""
+            **Latest Patches:**
+            1. **Workflow:** Terminology updated to "School Review Committee".
+            2. **Logic:** District Forms now "Advisory" (Not Auto-Fail).
+            3. **Tracker:** Added Live API Key Usage notification.
+            4. **Fix:** Solved "Repetitive Loop" bug (Temp 0.5).
+            5. **Network:** Added "Gentle Rotation" to prevent IP blocks.
+            """)
 
 # --- HELPER FUNCTION: PDF TEXT EXTRACTION ---
 def extract_text(uploaded_file):
