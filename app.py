@@ -55,7 +55,7 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
             
-    # 4. NEW: E-SIGNATURE STANDARDS
+    # 4. E-SIGNATURE STANDARDS
     with st.expander("✍️ E-Signature Legal Standards"):
         st.markdown("""
         **📋 Legal Summary: E-Signatures for Student Surveys**
@@ -78,19 +78,14 @@ with st.sidebar:
     st.markdown("---")
     
     # 5. KEY MANAGEMENT (SAFE LOAD)
-    # We explicitly force the list to reload from secrets
     district_keys = []
-    
-    # Try/Except block to catch secret formatting errors
     try:
         if "DISTRICT_KEYS" in st.secrets:
-            # Check if it's a list or a string needing splitting
             keys_raw = st.secrets["DISTRICT_KEYS"]
             if isinstance(keys_raw, list):
                 district_keys = keys_raw
             elif isinstance(keys_raw, str):
                 district_keys = [k.strip() for k in keys_raw.split(",")]
-                
             random.shuffle(district_keys)
             
             if user_mode == "AP Research Student":
@@ -384,11 +379,6 @@ if st.button("Run Compliance Check"):
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
         # 4. GENTLE KEY ROTATION
-        # We try models in a specific order:
-        # 1. Flash-8b (Best for High Volume)
-        # 2. Flash-Lite (Backup)
-        # 3. Legacy Flash (Old reliable)
-        
         models_to_try = [
             "gemini-1.5-flash-8b", 
             "gemini-2.5-flash-lite", 
@@ -441,10 +431,12 @@ if st.button("Run Compliance Check"):
             st.subheader("📬 Next Steps")
             
             if user_mode == "AP Research Student":
+                # UPDATED WORKFLOW FOR SCHOOL COMMITTEE
                 st.success("""
                 **✅ If all of your artifacts have passed:**
-                1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
-                2. Make sure that all files that were AI screened are shared with Mr. Anderson.
+                1. **Confirm your status with your AP Research Teacher.**
+                2. Plan for your **School Committee Approval** meeting.
+                3. Ensure all screened files are organized and ready for final review.
                 """)
                 st.error("""
                 **❌ If your Status is REVISION NEEDED:**
@@ -453,6 +445,7 @@ if st.button("Run Compliance Check"):
                 * **Re-run this check** until you get a PASS status.
                 """)
             else: 
+                # External Researchers still email the district
                 st.success("""
                 **✅ If all of your artifacts have passed:**
                 Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
