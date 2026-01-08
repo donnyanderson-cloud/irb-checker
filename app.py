@@ -77,7 +77,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # 5. KEY MANAGEMENT (SAFE LOAD)
+    # 5. KEY MANAGEMENT (SAFE LOAD + SHUFFLE)
     district_keys = []
     try:
         if "DISTRICT_KEYS" in st.secrets:
@@ -86,7 +86,8 @@ with st.sidebar:
                 district_keys = keys_raw
             elif isinstance(keys_raw, str):
                 district_keys = [k.strip() for k in keys_raw.split(",")]
-            # Randomize to prevent hotspots
+            
+            # Shuffle keys so we don't always hit Key #1 first
             random.shuffle(district_keys)
             
             if user_mode == "AP Research Student":
@@ -392,13 +393,11 @@ if st.button("Run Compliance Check"):
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
         # 4. GENTLE KEY ROTATION
-        # 1. Flash-8b (High Volume)
-        # 2. Flash-Lite (Backup)
-        # 3. Legacy Flash (Old reliable)
+        # We prioritize models that have the highest quota limits.
         models_to_try = [
-            "gemini-1.5-flash-8b", 
-            "gemini-2.5-flash-lite", 
-            "gemini-1.5-flash"
+            "gemini-1.5-flash-8b",   # 1. High Efficiency
+            "gemini-2.5-flash-lite", # 2. Backup
+            "gemini-1.5-flash"       # 3. Legacy
         ]
         
         response = None
@@ -434,10 +433,11 @@ if st.button("Run Compliance Check"):
 
         # 5. DISPLAY RESULTS
         if success and response:
+            # VISUAL KEY TRACKER (Answers your question: "Is it working?")
             if final_key_index > 1:
-                st.toast(f"Switched to Key #{final_key_index} ({final_model_name})", icon="🔀")
+                st.toast(f"⚠️ Load Balanced: Switched to Key #{final_key_index} ({final_model_name})", icon="🔀")
             else:
-                st.toast(f"Connected: {final_model_name}", icon="⚡")
+                st.toast(f"⚡ Connected using Key #{final_key_index} ({final_model_name})", icon="⚡")
                 
             status.success("✅ Analysis Complete!")
             st.markdown("---")
@@ -447,7 +447,6 @@ if st.button("Run Compliance Check"):
             st.subheader("📬 Next Steps")
             
             if user_mode == "AP Research Student":
-                # UPDATED WORKFLOW FOR SCHOOL COMMITTEE
                 st.success("""
                 **✅ If all of your artifacts have passed:**
                 1. **Confirm your status with your AP Research Teacher.**
@@ -461,7 +460,7 @@ if st.button("Run Compliance Check"):
                 * **Re-run this check** until you get a PASS status.
                 """)
             else: 
-                # External Researchers still email the district
+                # External Researchers
                 st.success("""
                 **✅ If all of your artifacts have passed:**
                 Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
