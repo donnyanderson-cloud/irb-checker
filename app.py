@@ -238,11 +238,15 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (ANTI-LOOP & NO REWRITE) ---
+    # --- SYSTEM PROMPT (WITH OBSERVATIONAL LOGIC) ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
     
     INSTRUCTION: Review the student proposal for compliance with Policy 6.4001. 
+    
+    **CONTEXTUAL INTELLIGENCE (METHODOLOGY CHECK):** 1. First, determine the study's methodology.
+    2. **IF** the study is Observational, Archival, or Content Analysis (no interaction with human subjects), DO NOT flag missing permissions, consent forms, or survey instruments.
+    3. **IF** the study involves Surveys, Interviews, or Focus Groups (Human Subjects), YOU MUST enforce all consent and permission requirements strictly.
     
     **STRICT CONSTRAINTS:** 1. Do NOT rewrite the student's text.
     2. Do NOT provide examples of 'correct' verbiage or phrases to copy.
@@ -260,7 +264,7 @@ if user_mode == "AP Research Student":
     2. SENSITIVE: Mental health, sexual behavior, illegal acts, income. Requires 'Active Written Consent'.
     3. MINOR PROTECTION: Participation is VOLUNTARY. No coercion.
     4. DATA: Must have destruction date and method.
-    5. E-SIGNATURES (If applicable): If using electronic consent, check for:
+    5. E-SIGNATURES (Conditional): **IF** using electronic consent, check for:
        - **Authentication:** How is the signer identity verified?
        - **Intent:** Is there a clear "I agree" action?
        - **Integrity:** Is the record tamper-proof?
@@ -310,6 +314,10 @@ else:
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
     TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
 
+    **CONTEXTUAL INTELLIGENCE (METHODOLOGY CHECK):** 1. First, determine the study's methodology.
+    2. **IF** the study is Observational, Archival, or Content Analysis (no interaction with human subjects), DO NOT flag missing permissions, consent forms, or survey instruments.
+    3. **IF** the study involves Surveys, Interviews, or Focus Groups (Human Subjects), YOU MUST enforce all consent and permission requirements strictly.
+
     **STRICT CONSTRAINTS:**
     1. Do not provide specific rewrite examples or sample verbiage. 
     2. Provide a professional description of the policy violation or missing element only.
@@ -325,7 +333,7 @@ else:
     3. PROHIBITED TOPICS (Strict Ban): Political affiliation, Voting, Religion, Firearms.
     4. SENSITIVE TOPICS: Mental health, sex, illegal acts, income -> Requires Written Active Consent.
     5. MANDATORY STATEMENTS: Agreement to Policy 6.4001, Voluntary statement, Right to inspect, Anonymity.
-    6. E-SIGNATURES (If applicable): Must demonstrate compliance with ESIGN Act/FERPA:
+    6. E-SIGNATURES (Conditional): **IF** using electronic consent, check for:
        - **Authentication:** Proof of signer identity.
        - **Audit Trail:** Timestamp and IP tracking.
        - **Retention:** Method for parents to keep a copy.
