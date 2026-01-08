@@ -368,4 +368,109 @@ if st.button("Run Compliance Check"):
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
             {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
-            {"category":
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+        ]
+
+        # 3. PREPARING TEXT
+        status.info("📄 Reading your PDF files...")
+        user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
+        
+        total_chars = 0
+        for doc_type, content in student_inputs.items():
+            clean_content = str(content)[:40000]
+            total_chars += len(clean_content)
+            user_message += f"\n--- {doc_type} ---\n{clean_content}\n" 
+        
+        status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
+
+        # 4. GENTLE KEY ROTATION
+        # 1. Flash-8b (High Volume)
+        # 2. Flash-Lite (Backup)
+        # 3. Legacy Flash (Old reliable)
+        models_to_try = [
+            "gemini-1.5-flash-8b", 
+            "gemini-2.5-flash-lite", 
+            "gemini-1.5-flash"
+        ]
+        
+        response = None
+        success = False
+        final_key_index = 0
+        final_model_name = ""
+
+        with st.spinner(f"🤖 Cycling through {len(district_keys)} keys (Gentle Mode)..."):
+            for i, key in enumerate(district_keys):
+                # VITAL: Small sleep to prevent IP Ban from Google
+                if i > 0: time.sleep(0.5)
+                
+                genai.configure(api_key=key)
+                
+                for model_name in models_to_try:
+                    try:
+                        model = genai.GenerativeModel(
+                            model_name=model_name, 
+                            generation_config=generation_config, 
+                            safety_settings=safety_settings
+                        )
+                        response = model.generate_content(user_message)
+                        
+                        success = True
+                        final_key_index = i + 1
+                        final_model_name = model_name
+                        break 
+                    except Exception:
+                        continue
+                
+                if success:
+                    break
+
+        # 5. DISPLAY RESULTS
+        if success and response:
+            if final_key_index > 1:
+                st.toast(f"Switched to Key #{final_key_index} ({final_model_name})", icon="🔀")
+            else:
+                st.toast(f"Connected: {final_model_name}", icon="⚡")
+                
+            status.success("✅ Analysis Complete!")
+            st.markdown("---")
+            st.markdown(response.text)
+            
+            st.markdown("---")
+            st.subheader("📬 Next Steps")
+            
+            if user_mode == "AP Research Student":
+                # UPDATED WORKFLOW FOR SCHOOL COMMITTEE
+                st.success("""
+                **✅ If all of your artifacts have passed:**
+                1. **Confirm your status with your AP Research Teacher.**
+                2. Plan for your **School Committee Approval** meeting.
+                3. Ensure all screened files are organized and ready for final review.
+                """)
+                st.error("""
+                **❌ If your Status is REVISION NEEDED:**
+                * Review the "Action Items" above.
+                * Edit your documents to address the missing policy requirements.
+                * **Re-run this check** until you get a PASS status.
+                """)
+            else: 
+                # External Researchers still email the district
+                st.success("""
+                **✅ If all of your artifacts have passed:**
+                Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
+                *⚠️ Make sure that all file sharing options have been addressed prior to your email submission.*
+                """)
+                st.error("""
+                **❌ If the Analysis says "REVISION NEEDED":**
+                Please correct the items listed in the checklist above before emailing the district. 
+                **Non-compliant proposals will be automatically returned.**
+                """)
+        else:
+            status.error("❌ Connection Failed")
+            st.error(f"""
+            **System Exhausted:** We tried {len(district_keys)} keys and all were rejected.
+            
+            **Diagnosis:**
+            1. **Reboot Required:** If you just added keys, you MUST reboot the app for them to load.
+            2. **IP Limit:** Too many requests in 1 second. (This updated code fixes this).
+            3. **Bad Key Format:** Check your secrets.toml file for missing commas.
+            """)
