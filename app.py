@@ -30,13 +30,13 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v2.3)"):
+    with st.expander("🆕 App Updates (v2.4)"):
         st.markdown("""
         **Latest Improvements:**
-        * 🧠 **Educational Feedback:** The AI now explains *why* a revision is needed (citing Policy/FERPA).
-        * 🗺️ **Workflow Update:** Phase 3 now correctly reflects **School-Level IRB** approval.
-        * 🚀 **Capacity Boost:** System now uses a 25-Key pool to handle entire classes simultaneously.
-        * 🛡️ **Scope Limits:** AI strictly ignores grammar/quality issues to focus 100% on Policy 6.4001.
+        * 🎨 **Unified Feedback Format:** External researchers now receive the same detailed, educational feedback structure as students.
+        * 🧠 **Educational Rationale:** All action steps now explain *why* a revision is needed (citing Policy/FERPA).
+        * 🗺️ **Workflow Update:** Phase 3 reflects School-Level IRB approval.
+        * 🚀 **Capacity Boost:** 25-Key pool active.
         """)
 
     # 4. FILE NAMING GUIDE
@@ -318,18 +318,19 @@ else:
                 combined_text += extract_text(f) + "\n\n"
             external_inputs["INSTRUMENTS"] = combined_text
 
-    # --- SYSTEM PROMPT (EXTERNAL) ---
+    # --- SYSTEM PROMPT (EXTERNAL - UNIFIED FORMAT) ---
     system_prompt = """
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
     TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
 
+    **REVIEW STRATEGY:**
+    1. **COMPREHENSIVE SCAN:** Identify all compliance gaps in one go.
+    2. **GROUPING:** Combine related issues into single Action Steps.
+    3. **EDUCATIONAL RATIONALE:** For each Action Step, you must explain **WHY** the revision is needed by citing Policy 6.4001, FERPA, or the District Research Rubric.
+
     **STRICT CONSTRAINTS:**
     1. Do not provide specific rewrite examples or sample verbiage. 
     2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality (e.g., sample size, typos). Focus ONLY on regulatory compliance (Policy 6.4001, Federal Rules, Ethics).
-
-    **FEEDBACK INSTRUCTIONS:**
-    1. **Consolidate Feedback:** Group related findings.
-    2. **Cite Policy:** When requesting changes, briefly reference *why* (e.g., "Required by Policy 6.4001 for student privacy").
 
     CRITICAL COMPLIANCE CHECKS:
     1. BENEFIT TO DISTRICT: Must explicitly state "projected value of the study to Blount County."
@@ -339,14 +340,12 @@ else:
     5. MANDATORY STATEMENTS: Agreement to Policy 6.4001, Voluntary statement, Right to inspect, Anonymity.
 
     OUTPUT FORMAT:
-    ### 🚦 Executive Summary
-    **Status:** [✅ RECOMMEND FOR REVIEW] or [❌ REVISION NEEDED]
-    
-    ### 🔍 Compliance Checklist
-    (List the 5 critical checks above and their status)
-    
-    ### 📝 Findings & Required Actions
-    (Provide specific feedback with Policy/Legal rationale. Group related items.)
+    - STATUS: [✅ RECOMMEND FOR REVIEW] or [❌ REVISION NEEDED]
+    - ACTION PLAN & RATIONALE:
+      * **[Action Step 1]:** [Clear instruction to fix missing items]
+        * *Rationale:* "[Brief explanation citing Policy 6.4001/Federal Law]"
+      * **[Action Step 2]:** ...
+      * ...
     """
     
     student_inputs = external_inputs
