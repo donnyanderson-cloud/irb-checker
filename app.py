@@ -131,4 +131,324 @@ if user_mode == "AP Research Student":
         try:
             st.image("APlogo.png", width=100)
         except:
-            st.header("🛡️")
+            st.header("🛡️") 
+            
+    with col_text:
+        st.title("AP Research IRB Self-Check Tool")
+    
+    # --- WORKFLOW GRAPHIC ---
+    with st.expander("🗺️ View Research Workflow Map"):
+        st.graphviz_chart("""
+        digraph {
+            rankdir=TB;
+            node [shape=box, style="filled,rounded", fontname="Sans-Serif"];
+            
+            # Colors
+            node [fillcolor="#e1f5fe" color="#01579b"]; # Student Blue
+            
+            # Phase 1
+            subgraph cluster_0 {
+                label = "Phase 1: Development";
+                style=dashed; color=grey;
+                Draft [label="📝 Draft Proposal"];
+                Inst [label="Create Instruments"];
+                Draft -> Inst;
+            }
+
+            # Phase 2
+            subgraph cluster_1 {
+                label = "Phase 2: AI Compliance Check";
+                style=filled; color="#e8f5e9";
+                
+                node [fillcolor="#c8e6c9" color="#2e7d32"]; # AI Green
+                Upload [label="🚀 Upload to AI Portal"];
+                Check [label="⚠️ AI Review"];
+                Pass [label="✅ Clean Bill of Health"];
+                Fail [label="❌ Revision Needed"];
+                
+                Inst -> Upload;
+                Upload -> Check;
+                Check -> Pass;
+                Check -> Fail;
+                Fail -> Upload [label="Fix & Re-upload"];
+            }
+
+            # Phase 3
+            subgraph cluster_2 {
+                label = "Phase 3: District Approval";
+                style=filled; color="#fff9c4";
+                
+                node [fillcolor="#fff59d" color="#fbc02d"]; # District Yellow
+                Submit [label="📧 Submit to Mr. Anderson"];
+                Review [label="District Committee Review"];
+                Approve [label="📜 Approval Letter"];
+                
+                Pass -> Submit;
+                Submit -> Review;
+                Review -> Approve;
+                Review -> Fail [label="Denied"];
+            }
+
+            # Phase 4
+            subgraph cluster_3 {
+                label = "Phase 4: Implementation";
+                style=filled; color="#f3e5f5";
+                
+                node [fillcolor="#e1bee7" color="#7b1fa2"]; # School Purple
+                Principal [label="📍 Contact Principal"];
+                Start [label="📊 Begin Data Collection"];
+                
+                Approve -> Principal;
+                Principal -> Start [label="Site Permission"];
+            }
+        }
+        """)
+    
+    st.markdown("**For BCS Students:** Screen your research documents against **Policy 6.4001** and **AP Ethics Standards**.&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
+
+    document_types = [
+        "Research Proposal",
+        "Survey / Interview Questions",
+        "Parent Permission Form",
+        "Principal/District Permission Forms"
+    ]
+    selected_docs = st.multiselect("Select documents to screen:", document_types, default=["Research Proposal"])
+    
+    student_inputs = {}
+
+    if "Research Proposal" in selected_docs:
+        st.markdown("### 1. Research Proposal")
+        file = st.file_uploader("Upload Proposal (PDF)", type="pdf", key="ap_prop")
+        if file: student_inputs["PROPOSAL"] = extract_text(file)
+
+    if "Survey / Interview Questions" in selected_docs:
+        st.markdown("### 2. Survey or Interview Script")
+        input_method = st.radio("Input Method:", ["Paste Text", "Upload PDF"], horizontal=True, key="ap_survey_toggle")
+        
+        if input_method == "Paste Text":
+            st.info("💡 Tip: For Google Forms, Ctrl+A -> Copy -> Paste here.")
+            text = st.text_area("Paste text here:", height=200, key="ap_survey_text")
+            if text: student_inputs["SURVEY"] = text
+        else:
+            file = st.file_uploader("Upload Survey PDF", type="pdf", key="ap_survey_file")
+            if file: student_inputs["SURVEY"] = extract_text(file)
+
+    if "Parent Permission Form" in selected_docs:
+        st.markdown("### 3. Parent Permission Form")
+        file = st.file_uploader("Upload Parent Form (PDF)", type="pdf", key="ap_parent")
+        if file: student_inputs["PARENT_FORM"] = extract_text(file)
+
+    if "Principal/District Permission Forms" in selected_docs:
+        st.markdown("### 4. Principal/District Permission Forms")
+        file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
+        if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
+
+    # --- UPDATED SYSTEM PROMPT (SCOPE LIMITATION ADDED) ---
+    system_prompt = """
+    ROLE: AP Research IRB Compliance Officer for Blount County Schools.
+    
+    INSTRUCTION: Review the student proposal for compliance with Policy 6.4001.
+    
+    **REVIEW STRATEGY (CRITICAL):**
+    You must perform a **COMPREHENSIVE SCAN**. Do not stop after finding the first major error. You must list **EVERY** single compliance violation found in the document in this one response.
+    
+    **STRICT CONSTRAINTS:** 1. Do NOT rewrite the student's text.
+    2. Do NOT provide examples of 'correct' verbiage.
+    3. Be brief but clear.
+    4. **SCOPE LIMITATION:** Do NOT critique the student's grammar, sentence structure, or research quality/methodology. Only flag issues that strictly violate Policy 6.4001, Federal Regulations, or Ethical Standards.
+    
+    **HOW TO GENERATE ACTION STEPS:**
+    * *Bad:* "Fix data destruction."
+    * *Good:* "Proposal lacks a specific **date** and **method** for data destruction (Policy 6.4001)."
+    
+    CRITERIA (Policy 6.4001 & Federal Rules):
+    1. PROHIBITED: Political affiliation, voting history, religious practices, firearm ownership. (Strict Fail).
+    2. SENSITIVE: Mental health, sexual behavior, illegal acts, income. Requires 'Active Written Consent'.
+    3. MINOR PROTECTION: Participation is VOLUNTARY. No coercion.
+    4. DATA: Must have destruction date and method.
+    
+    OUTPUT FORMAT:
+    - STATUS: [✅ PASS] or [❌ REVISION NEEDED]
+    - COMPREHENSIVE ACTION LIST:
+      * [Violation 1]: [Specific missing variable]
+      * [Violation 2]: [Specific missing variable]
+      * ... (Continue until ALL violations are listed)
+    """
+
+# ==========================================
+# MODE B: EXTERNAL / HIGHER ED RESEARCHER
+# ==========================================
+else:
+    st.title("🏛️ External Research Proposal Review")
+    st.info("### 📋 Criteria for External Proposals")
+    
+    st.markdown("All research requests involving Blount County Schools (BCS) are critiqued against District Standards (Policy 6.4001).&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
+    
+    st.info("You may upload multiple PDF files for each section.")
+
+    external_inputs = {}
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 1. Main Proposal Packet")
+        st.caption("Purpose, Methodology, Benefit, Logistics.")
+        prop_files = st.file_uploader("Upload Full Proposal (PDFs)", type="pdf", key="ext_prop", accept_multiple_files=True)
+        if prop_files:
+            combined_text = ""
+            for f in prop_files:
+                combined_text += extract_text(f) + "\n\n"
+            external_inputs["FULL_PROPOSAL"] = combined_text
+
+    with col2:
+        st.markdown("### 2. Instruments & Consents")
+        st.caption("Surveys, Protocols, Consent Forms.")
+        inst_files = st.file_uploader("Upload Instruments (PDFs)", type="pdf", key="ext_inst", accept_multiple_files=True)
+        if inst_files:
+            combined_text = ""
+            for f in inst_files:
+                combined_text += extract_text(f) + "\n\n"
+            external_inputs["INSTRUMENTS"] = combined_text
+
+    # --- SYSTEM PROMPT (EXTERNAL - SCOPE LIMITED) ---
+    system_prompt = """
+    ROLE: Research Committee Reviewer for Blount County Schools (BCS).
+    TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
+
+    **STRICT CONSTRAINTS:**
+    1. Do not provide specific rewrite examples or sample verbiage. 
+    2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality (e.g., sample size, typos). Focus ONLY on regulatory compliance (Policy 6.4001, Federal Rules, Ethics).
+
+    **GUIDANCE FOR FEEDBACK:**
+    Your "Action Items" must be specific enough to guide the researcher without drafting the text for them.
+    * *Example:* If the benefit is vague, state: "The proposal lists general academic benefits but lacks a specific, quantifiable benefit to Blount County Schools as required by the district research rubric."
+
+    CRITICAL COMPLIANCE CHECKS:
+    1. BENEFIT TO DISTRICT: Must explicitly state "projected value of the study to Blount County."
+    2. BURDEN: Must not interfere with instructional time. No "Convenience Sampling."
+    3. PROHIBITED TOPICS (Strict Ban): Political affiliation, Voting, Religion, Firearms.
+    4. SENSITIVE TOPICS: Mental health, sex, illegal acts, income -> Requires Written Active Consent.
+    5. MANDATORY STATEMENTS: Agreement to Policy 6.4001, Voluntary statement, Right to inspect, Anonymity.
+
+    OUTPUT FORMAT:
+    ### 🚦 Executive Summary
+    **Status:** [✅ RECOMMEND FOR REVIEW] or [❌ REVISION NEEDED]
+    
+    ### 🔍 Compliance Checklist
+    (List the 5 critical checks above and their status)
+    
+    ### 📝 Detailed Findings & Action Items
+    (Provide specific feedback on *missing variables* or *policy gaps* without offering rewrite text.)
+    """
+    
+    student_inputs = external_inputs
+
+# ==========================================
+# EXECUTION LOGIC
+# ==========================================
+if st.button("Run Compliance Check"):
+    if not api_key:
+        st.error("⚠️ Please enter a Google API Key in the sidebar.")
+    elif not student_inputs:
+        st.warning("Please upload at least one document.")
+    else:
+        # 1. SETUP
+        status = st.empty() 
+        status.info("🔌 Connecting to AI Services...")
+        genai.configure(api_key=api_key)
+        
+        # 2. CONFIGURATION (FIXED: Temp 0.3 prevents repetition loops)
+        generation_config = {
+            "temperature": 0.3, 
+            "top_p": 0.95, 
+            "top_k": 40, 
+            "max_output_tokens": 8192
+        }
+        
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+        ]
+
+        # 3. PREPARING TEXT
+        status.info("📄 Reading your PDF files...")
+        user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
+        
+        total_chars = 0
+        for doc_type, content in student_inputs.items():
+            clean_content = str(content)[:40000]
+            total_chars += len(clean_content)
+            user_message += f"\n--- {doc_type} ---\n{clean_content}\n" 
+        
+        status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
+
+        # 4. MODEL SELECTOR
+        target_models = [
+            "gemini-2.5-flash-lite",      # 🥇 Confirmed in your list
+            "gemini-flash-lite-latest",   # 🥈 Alias for the above
+            "gemini-2.0-flash-lite",      # 🥉 Fallback Lite model
+            "gemini-2.5-flash"            # 🚨 LAST RESORT (Low 20/day limit)
+        ]
+
+        response = None
+        success = False
+        connected_model = ""
+
+        with st.spinner("🤖 Connecting..."):
+            for model_name in target_models:
+                try:
+                    model = genai.GenerativeModel(
+                        model_name=model_name, 
+                        generation_config=generation_config, 
+                        safety_settings=safety_settings
+                    )
+                    response = model.generate_content(user_message)
+                    success = True
+                    connected_model = model_name
+                    break 
+                except Exception as e:
+                    # If quota exceeded or 404, try the next one
+                    continue
+
+        # 5. DISPLAY RESULTS
+        if success and response:
+            st.toast(f"✅ Connected to: {connected_model}", icon="⚡")
+            status.success("✅ Analysis Complete!")
+            st.markdown("---")
+            st.markdown(response.text)
+            
+            # --- CONDITIONAL NEXT STEPS ---
+            st.markdown("---")
+            st.subheader("📬 Next Steps")
+            
+            if user_mode == "AP Research Student":
+                st.success("""
+                **✅ If all of your artifacts have passed:**
+                1. Confirm your status to your teacher for district submission via email: **donny.anderson@blountk12.org**
+                2. Make sure that all files that were AI screened are shared with Mr. Anderson.
+                """)
+                st.error("""
+                **❌ If your Status is REVISION NEEDED:**
+                * Review the "Action Items" above.
+                * Edit your documents to address the missing policy requirements.
+                * **Re-run this check** until you get a PASS status.
+                """)
+            else: 
+                st.success("""
+                **✅ If all of your artifacts have passed:**
+                Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
+                *⚠️ Make sure that all file sharing options have been addressed prior to your email submission.*
+                """)
+                st.error("""
+                **❌ If the Analysis says "REVISION NEEDED":**
+                Please correct the items listed in the checklist above before emailing the district. 
+                **Non-compliant proposals will be automatically returned.**
+                """)
+        else:
+            status.error("❌ Connection Failed")
+            st.error("""
+            **All models failed.** Please check your Quota usage at https://ai.google.dev/usage. 
+            You may need to create a new API Key if your daily limit is reached.
+            """)
