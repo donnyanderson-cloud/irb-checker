@@ -29,7 +29,16 @@ with st.sidebar:
     # 2. PRIVACY NOTICE
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
-    # 3. FILE NAMING GUIDE
+    # 3. APP UPDATES
+    with st.expander("🆕 App Updates (v2.1)"):
+        st.markdown("""
+        **Latest Improvements:**
+        * 🚀 **Capacity Boost:** System now uses a 25-Key pool to handle entire classes simultaneously.
+        * 🧠 **Smarter Feedback:** The AI now performs a "Comprehensive Scan" to catch multiple errors at once.
+        * 🛡️ **Scope Limits:** AI strictly ignores grammar/quality issues to focus 100% on Policy 6.4001.
+        """)
+
+    # 4. FILE NAMING GUIDE
     with st.expander("📂 File Naming Standards"):
         if user_mode == "AP Research Student":
             st.markdown("""
@@ -53,10 +62,18 @@ with st.sidebar:
             * `Lastname_Institution_Proposal_2025.pdf`
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
-    
+            
+    # 5. RESOURCES (RESTORED)
+    with st.expander("📚 Helpful Resources"):
+        st.markdown("""
+        **Essential Documents:**
+        * [📜 Board Policy 6.4001](https://tsba.net/blount-county-board-of-education-policy-manual/)
+        * [📂 Student Templates Folder](https://drive.google.com/) *(Ask Teacher for Link)*
+        """)
+
     st.markdown("---")
     
-    # 4. KEY MANAGEMENT
+    # 6. KEY MANAGEMENT
     api_key = None
     
     # Check for the list of keys (Primary Method for Classrooms)
@@ -100,7 +117,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 5. DIAGNOSTICS
+    # 7. DIAGNOSTICS
     if user_mode == "AP Research Student":
         try:
             lib_ver = importlib.metadata.version("google-generativeai")
@@ -243,7 +260,7 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- UPDATED SYSTEM PROMPT (SCOPE LIMITATION ADDED) ---
+    # --- UPDATED SYSTEM PROMPT (SCOPE LIMITED + COMPREHENSIVE SCAN) ---
     system_prompt = """
     ROLE: AP Research IRB Compliance Officer for Blount County Schools.
     
