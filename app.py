@@ -30,11 +30,11 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v2.5)"):
+    with st.expander("🆕 App Updates (v2.6)"):
         st.markdown("""
         **Latest Improvements:**
-        * 🧑‍🤝‍🧑 **Adult Consent Support:** The tool now intelligently distinguishes between **Minor Subjects** (requiring Parent Forms) and **Adult Subjects** (requiring Adult Consent).
-        * 🎨 **Unified Feedback:** Consistent format for all users.
+        * 🧑‍🤝‍🧑 **Adult Consent Support:** The tool now intelligently distinguishes between **Minor Subjects** (requiring Parent Forms) and **Adult Subjects** (requiring Adult Consent) for ALL users.
+        * 🎨 **Unified Feedback:** Consistent format for both Student and External researchers.
         * 🧠 **Educational Rationale:** Explains "Why" for every error.
         * 🚀 **Capacity:** 25-Key pool active.
         """)
@@ -226,7 +226,7 @@ if user_mode == "AP Research Student":
     document_types = [
         "Research Proposal",
         "Survey / Interview Questions",
-        "Participant Consent Forms (Parent or Adult)", # RENAMED
+        "Participant Consent Forms (Parent or Adult)", 
         "Principal/District Permission Forms"
     ]
     selected_docs = st.multiselect("Select documents to screen:", document_types, default=["Research Proposal"])
@@ -327,14 +327,16 @@ else:
                 combined_text += extract_text(f) + "\n\n"
             external_inputs["INSTRUMENTS"] = combined_text
 
-    # --- SYSTEM PROMPT (EXTERNAL - UNIFIED FORMAT) ---
+    # --- SYSTEM PROMPT (EXTERNAL - UNIFIED + TRIAGE) ---
     system_prompt = """
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
     TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
 
     **REVIEW STRATEGY:**
-    1. **COMPREHENSIVE SCAN:** Identify all compliance gaps in one go.
-    2. **GROUPING:** Combine related issues into single Action Steps.
+    1. **SUBJECT TRIAGE:** Determine if the participants are **MINORS** (Students <18) or **ADULTS** (Teachers/Staff).
+       - IF MINORS: Check for "Parent Permission Form".
+       - IF ADULTS: Check for "Adult Informed Consent Form" (Do NOT ask for Parent Permission).
+    2. **COMPREHENSIVE SCAN:** Identify all compliance gaps in one go.
     3. **EDUCATIONAL RATIONALE:** For each Action Step, you must explain **WHY** the revision is needed by citing Policy 6.4001, FERPA, or the District Research Rubric.
 
     **STRICT CONSTRAINTS:**
