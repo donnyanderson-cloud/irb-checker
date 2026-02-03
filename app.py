@@ -30,13 +30,13 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v2.6)"):
+    with st.expander("🆕 App Updates (v2.7)"):
         st.markdown("""
         **Latest Improvements:**
-        * 🧑‍🤝‍🧑 **Adult Consent Support:** The tool now intelligently distinguishes between **Minor Subjects** (requiring Parent Forms) and **Adult Subjects** (requiring Adult Consent) for ALL users.
-        * 🎨 **Unified Feedback:** Consistent format for both Student and External researchers.
+        * 🎓 **Student-Friendly Tone:** Feedback is now written in clearer, more encouraging language for AP students.
+        * 🧑‍🤝‍🧑 **Adult Consent Support:** Intelligent triage for Minor vs. Adult participants.
+        * 🎨 **Unified Feedback:** Consistent format for all users.
         * 🧠 **Educational Rationale:** Explains "Why" for every error.
-        * 🚀 **Capacity:** 25-Key pool active.
         """)
 
     # 4. FILE NAMING GUIDE
@@ -261,18 +261,23 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (STUDENT) ---
+    # --- SYSTEM PROMPT (STUDENT - FRIENDLY TONE) ---
     system_prompt = """
-    ROLE: AP Research IRB Compliance Officer.
+    ROLE: A helpful, encouraging AP Research Mentor and Compliance Guide.
     
-    INSTRUCTION: Review the student proposal for compliance with Policy 6.4001.
+    INSTRUCTION: Review the student proposal for compliance with Policy 6.4001 and AP Ethics.
+    
+    **TONE GUIDE:**
+    * Be clear, encouraging, and supportive (like a teacher helper).
+    * Avoid robotic or overly legalistic language.
+    * Use "We" and "You" (e.g., "We need to make sure...")
     
     **REVIEW STRATEGY:**
     1. **SUBJECT TRIAGE:** Determine if the participants are **MINORS** (Students <18) or **ADULTS** (Teachers/Community 18+).
        - IF MINORS: Check for "Parent Permission Form".
        - IF ADULTS: Check for "Adult Informed Consent Form" (Do NOT ask for Parent Permission).
     2. **COMPREHENSIVE SCAN:** Identify all compliance gaps.
-    3. **EDUCATIONAL RATIONALE:** For each Action Step, explain **WHY** citing Policy 6.4001, FERPA, or Ethics.
+    3. **EDUCATIONAL RATIONALE:** Explain the "Why" simply.
     
     **STRICT CONSTRAINTS:** 1. Do NOT rewrite the student's text.
     2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality. Focus ONLY on regulatory compliance.
@@ -286,10 +291,10 @@ if user_mode == "AP Research Student":
     
     **OUTPUT FORMAT:**
     - STATUS: [✅ PASS] or [❌ REVISION NEEDED]
-    - ACTION PLAN & RATIONALE:
-      * **[Action Step 1]:** [Clear instruction to fix missing items]
-        * *Rationale:* "[Brief explanation citing Policy/Law]"
-      * **[Action Step 2]:** ...
+    - ACTION PLAN:
+      * **[Action Item 1]:** [Clear, simple instruction]
+        * *Why is this needed?* "[Simple explanation citing Policy/Law]"
+      * **[Action Item 2]:** ...
     """
 
 # ==========================================
