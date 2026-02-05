@@ -30,12 +30,12 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v2.7)"):
+    with st.expander("🆕 App Updates (v2.8)"):
         st.markdown("""
         **Latest Improvements:**
-        * 🎓 **Student-Friendly Tone:** Feedback is now written in clearer, more encouraging language for AP students.
+        * 📂 **Multi-File Uploads:** Students can now upload multiple PDFs for their Proposal section (e.g., separate Bibliography or Appendices).
+        * 🎓 **Student-Friendly Tone:** Feedback is encouraging and clear.
         * 🧑‍🤝‍🧑 **Adult Consent Support:** Intelligent triage for Minor vs. Adult participants.
-        * 🎨 **Unified Feedback:** Consistent format for all users.
         * 🧠 **Educational Rationale:** Explains "Why" for every error.
         """)
 
@@ -235,8 +235,13 @@ if user_mode == "AP Research Student":
 
     if "Research Proposal" in selected_docs:
         st.markdown("### 1. Research Proposal")
-        file = st.file_uploader("Upload Proposal (PDF)", type="pdf", key="ap_prop")
-        if file: student_inputs["PROPOSAL"] = extract_text(file)
+        # UPDATED: accept_multiple_files=True
+        prop_files = st.file_uploader("Upload Proposal (PDFs)", type="pdf", key="ap_prop", accept_multiple_files=True)
+        if prop_files:
+            combined_text = ""
+            for f in prop_files:
+                combined_text += extract_text(f) + "\n\n"
+            student_inputs["PROPOSAL"] = combined_text
 
     if "Survey / Interview Questions" in selected_docs:
         st.markdown("### 2. Survey or Interview Script")
