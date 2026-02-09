@@ -12,6 +12,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ==========================================
+# 🛑 ADMIN SECTION: DISTRICT STANDARDS
+# ==========================================
+# INSTRUCTION: PASTE THE TEXT OF YOUR NEW "REGULATIONS AND PROCEDURES" DOCUMENT
+# BETWEEN THE TRIPLE QUOTES BELOW. THE AI WILL USE THIS AS THE SOURCE OF TRUTH.
+
+DISTRICT_STANDARDS_TEXT = """
+(PASTE YOUR NEW REGULATION TEXT HERE. DELETE THIS LINE AND PASTE THE CONTENT.
+Examples of what should be here:
+- The text defining prohibited topics.
+- The text defining data destruction requirements.
+- The text regarding parental consent.
+The AI will read this exact text to make its decisions.)
+"""
+
+# ==========================================
+# END ADMIN SECTION
+# ==========================================
+
 # --- SIDEBAR: GLOBAL SETTINGS ---
 with st.sidebar:
     st.header("⚙️ Configuration")
@@ -30,17 +49,21 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v2.8)"):
+    with st.expander("🆕 App Updates (v3.1)"):
         st.markdown("""
         **Latest Improvements:**
-        * 📂 **Multi-File Uploads:** Students can now upload multiple PDFs for their Proposal section (e.g., separate Bibliography or Appendices).
-        * 🎓 **Student-Friendly Tone:** Feedback is encouraging and clear.
+        * 🏆 **Exemplar Library:** Added model proposals to help you start.
+        * 💡 **Pro Tips:** Added guidance on explicit policy citation.
+        * 📜 **Live Standards Update:** The AI now screens strictly against the **newly revised** District Regulations document.
+        * 📂 **Multi-File Uploads:** Support for multiple PDF uploads in the Proposal section.
+        * 🎓 **Student-Friendly Tone:** Feedback is clear and encouraging.
         * 🧑‍🤝‍🧑 **Adult Consent Support:** Intelligent triage for Minor vs. Adult participants.
-        * 🧠 **Educational Rationale:** Explains "Why" for every error.
         """)
 
-    # 4. FILE NAMING GUIDE
+    # 4. FILE NAMING GUIDE (UPDATED WITH PRO TIP)
     with st.expander("📂 File Naming Standards"):
+        st.info("💡 **Pro Tip for a Fast Pass:** The AI looks for *explicit* alignment. Don't just imply you will be safe; clearly state: *'In accordance with Policy 6.4001, I will...'*" )
+        
         if user_mode == "AP Research Student":
             st.markdown("""
             **⚠️ GOOGLE DOCS USERS:**
@@ -64,11 +87,12 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
 
-    # 5. RESOURCES
+    # 5. RESOURCES (UPDATED WITH EXEMPLARS)
     with st.expander("📚 Helpful Resources"):
         st.markdown("""
         **Essential Documents:**
         * [📜 Board Policy 6.4001](https://tsba.net/blount-county-board-of-education-policy-manual/)
+        * [🏆 Model Proposal Examples](https://drive.google.com/) *(Ask Mr. Anderson for Link)*
         """)
     
     st.markdown("---")
@@ -235,7 +259,6 @@ if user_mode == "AP Research Student":
 
     if "Research Proposal" in selected_docs:
         st.markdown("### 1. Research Proposal")
-        # UPDATED: accept_multiple_files=True
         prop_files = st.file_uploader("Upload Proposal (PDFs)", type="pdf", key="ap_prop", accept_multiple_files=True)
         if prop_files:
             combined_text = ""
@@ -266,40 +289,35 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (STUDENT - FRIENDLY TONE) ---
-    system_prompt = """
+    # --- SYSTEM PROMPT (STUDENT) ---
+    system_prompt = f"""
     ROLE: A helpful, encouraging AP Research Mentor and Compliance Guide.
     
-    INSTRUCTION: Review the student proposal for compliance with Policy 6.4001 and AP Ethics.
+    INSTRUCTION: Review the student proposal for compliance with Policy 6.4001, AP Ethics, and the specific District Standards provided below.
     
     **TONE GUIDE:**
     * Be clear, encouraging, and supportive (like a teacher helper).
     * Avoid robotic or overly legalistic language.
-    * Use "We" and "You" (e.g., "We need to make sure...")
+    * Use "We" and "You".
     
     **REVIEW STRATEGY:**
     1. **SUBJECT TRIAGE:** Determine if the participants are **MINORS** (Students <18) or **ADULTS** (Teachers/Community 18+).
        - IF MINORS: Check for "Parent Permission Form".
        - IF ADULTS: Check for "Adult Informed Consent Form" (Do NOT ask for Parent Permission).
-    2. **COMPREHENSIVE SCAN:** Identify all compliance gaps.
+    2. **CHECK AGAINST SOURCE:** Compare the student's work specifically against the 'DISTRICT_STANDARDS' text provided below.
     3. **EDUCATIONAL RATIONALE:** Explain the "Why" simply.
     
     **STRICT CONSTRAINTS:** 1. Do NOT rewrite the student's text.
     2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality. Focus ONLY on regulatory compliance.
     
-    **CRITERIA (Policy 6.4001 & Federal Rules):**
-    1. PROHIBITED: Political affiliation, voting history, religious practices, firearm ownership. (Strict Fail).
-    2. CONSENT (Select One based on Subject Age):
-       - **Minors:** Requires Active Parent Permission + Student Assent.
-       - **Adults:** Requires Adult Informed Consent (Voluntary participation statement).
-    3. DATA: Must have destruction date and method.
+    **SOURCE OF TRUTH (DISTRICT STANDARDS):**
+    \"\"\"{DISTRICT_STANDARDS_TEXT}\"\"\"
     
     **OUTPUT FORMAT:**
     - STATUS: [✅ PASS] or [❌ REVISION NEEDED]
     - ACTION PLAN:
       * **[Action Item 1]:** [Clear, simple instruction]
-        * *Why is this needed?* "[Simple explanation citing Policy/Law]"
-      * **[Action Item 2]:** ...
+        * *Why is this needed?* "[Simple explanation citing the Policy text above]"
     """
 
 # ==========================================
@@ -337,35 +355,30 @@ else:
                 combined_text += extract_text(f) + "\n\n"
             external_inputs["INSTRUMENTS"] = combined_text
 
-    # --- SYSTEM PROMPT (EXTERNAL - UNIFIED + TRIAGE) ---
-    system_prompt = """
+    # --- SYSTEM PROMPT (EXTERNAL) ---
+    system_prompt = f"""
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
-    TASK: Analyze the external research proposal against District "Regulations and Procedures for Conducting Research Studies" and Board Policy 6.4001.
+    TASK: Analyze the external research proposal against Board Policy 6.4001 and the updated Regulations provided below.
 
     **REVIEW STRATEGY:**
     1. **SUBJECT TRIAGE:** Determine if the participants are **MINORS** (Students <18) or **ADULTS** (Teachers/Staff).
        - IF MINORS: Check for "Parent Permission Form".
-       - IF ADULTS: Check for "Adult Informed Consent Form" (Do NOT ask for Parent Permission).
-    2. **COMPREHENSIVE SCAN:** Identify all compliance gaps in one go.
-    3. **EDUCATIONAL RATIONALE:** For each Action Step, you must explain **WHY** the revision is needed by citing Policy 6.4001, FERPA, or the District Research Rubric.
+       - IF ADULTS: Check for "Adult Informed Consent Form".
+    2. **CHECK AGAINST SOURCE:** Compare the proposal specifically against the 'DISTRICT_STANDARDS' text provided below.
+    3. **EDUCATIONAL RATIONALE:** Explain **WHY** the revision is needed by citing the standards below.
 
     **STRICT CONSTRAINTS:**
     1. Do not provide specific rewrite examples or sample verbiage. 
-    2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality (e.g., sample size, typos). Focus ONLY on regulatory compliance (Policy 6.4001, Federal Rules, Ethics).
+    2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality. Focus ONLY on regulatory compliance.
 
-    CRITICAL COMPLIANCE CHECKS:
-    1. BENEFIT TO DISTRICT: Must explicitly state "projected value of the study to Blount County."
-    2. BURDEN: Must not interfere with instructional time. No "Convenience Sampling."
-    3. PROHIBITED TOPICS (Strict Ban): Political affiliation, Voting, Religion, Firearms.
-    4. SENSITIVE TOPICS: Mental health, sex, illegal acts, income -> Requires Written Active Consent.
-    5. MANDATORY STATEMENTS: Agreement to Policy 6.4001, Voluntary statement, Right to inspect, Anonymity.
+    **SOURCE OF TRUTH (DISTRICT STANDARDS):**
+    \"\"\"{DISTRICT_STANDARDS_TEXT}\"\"\"
 
     OUTPUT FORMAT:
     - STATUS: [✅ RECOMMEND FOR REVIEW] or [❌ REVISION NEEDED]
     - ACTION PLAN & RATIONALE:
       * **[Action Step 1]:** [Clear instruction to fix missing items]
-        * *Rationale:* "[Brief explanation citing Policy 6.4001/Federal Law]"
-      * **[Action Step 2]:** ...
+        * *Rationale:* "[Brief explanation citing the Standard text]"
     """
     
     student_inputs = external_inputs
