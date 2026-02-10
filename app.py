@@ -87,14 +87,17 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
 
-    # 5. RESOURCES (UPDATED WITH EXEMPLARS LINK)
+    # 5. RESOURCES (UPDATED WITH DIRECT POLICY LINK)
     with st.expander("📚 Helpful Resources"):
         # REPLACE THE LINK BELOW WITH YOUR ACTUAL GOOGLE DRIVE FOLDER LINK
-        exemplar_link = "https://drive.google.com/drive/folders/1fJs6gz3Ny0At5ORtNw8ltxUdpK75FeE9?usp=drive_link" 
+        exemplar_link = "https://drive.google.com/drive/folders/PASTE_YOUR_GOOGLE_DRIVE_LINK_HERE" 
         
+        # UPDATED POLICY LINK BELOW
+        policy_link = "https://tsbanet-my.sharepoint.com/:w:/g/personal/policy_tsba_net/IQBC2qP4HLINS4bE_uYSfCoTAfRZQl550nGkjSwQjwB0-KM?rtime=Un5aaupo3kg"
+
         st.markdown(f"""
         **Essential Documents:**
-        * [📜 Board Policy 6.4001](https://tsba.net/blount-county-board-of-education-policy-manual/)
+        * [📜 **Board Policy 6.4001**]({policy_link}) *(Direct Link)*
         * [🏆 **Model Proposal Examples**]({exemplar_link}) *(Click to View)*
         """)
     
