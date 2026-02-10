@@ -49,7 +49,7 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v3.1)"):
+    with st.expander("🆕 App Updates (v3.2)"):
         st.markdown("""
         **Latest Improvements:**
         * 🏆 **Exemplar Library:** Added model proposals to help you start.
@@ -87,12 +87,15 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
 
-    # 5. RESOURCES (UPDATED WITH EXEMPLARS)
+    # 5. RESOURCES (UPDATED WITH EXEMPLARS LINK)
     with st.expander("📚 Helpful Resources"):
-        st.markdown("""
+        # REPLACE THE LINK BELOW WITH YOUR ACTUAL GOOGLE DRIVE FOLDER LINK
+        exemplar_link = "https://drive.google.com/drive/folders/1fJs6gz3Ny0At5ORtNw8ltxUdpK75FeE9?usp=drive_link" 
+        
+        st.markdown(f"""
         **Essential Documents:**
         * [📜 Board Policy 6.4001](https://tsba.net/blount-county-board-of-education-policy-manual/)
-        * [🏆 Model Proposal Examples](https://drive.google.com/) *(Ask Mr. Anderson for Link)*
+        * [🏆 **Model Proposal Examples**]({exemplar_link}) *(Click to View)*
         """)
     
     st.markdown("---")
