@@ -49,18 +49,17 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v3.2)"):
+    with st.expander("🆕 App Updates (v3.4)"):
         st.markdown("""
         **Latest Improvements:**
-        * 🏆 **Exemplar Library:** Added model proposals to help you start.
+        * 📋 **New Procedures Link:** Direct access to the official BCS Research Regulations document.
+        * 🏆 **Exemplar Library:** Model proposals to help you start.
         * 💡 **Pro Tips:** Added guidance on explicit policy citation.
-        * 📜 **Live Standards Update:** The AI now screens strictly against the **newly revised** District Regulations document.
+        * 📜 **Live Standards Update:** The AI screens against the revised District Regulations.
         * 📂 **Multi-File Uploads:** Support for multiple PDF uploads in the Proposal section.
-        * 🎓 **Student-Friendly Tone:** Feedback is clear and encouraging.
-        * 🧑‍🤝‍🧑 **Adult Consent Support:** Intelligent triage for Minor vs. Adult participants.
         """)
 
-    # 4. FILE NAMING GUIDE (UPDATED WITH PRO TIP)
+    # 4. FILE NAMING GUIDE
     with st.expander("📂 File Naming Standards"):
         st.info("💡 **Pro Tip for a Fast Pass:** The AI looks for *explicit* alignment. Don't just imply you will be safe; clearly state: *'In accordance with Policy 6.4001, I will...'*" )
         
@@ -87,18 +86,22 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
 
-    # 5. RESOURCES (UPDATED WITH DIRECT POLICY LINK)
+    # 5. RESOURCES (UPDATED WITH PROCEDURES LINK)
     with st.expander("📚 Helpful Resources"):
-        # REPLACE THE LINK BELOW WITH YOUR ACTUAL GOOGLE DRIVE FOLDER LINK
+        # REPLACE THE LINK BELOW WITH YOUR ACTUAL GOOGLE DRIVE FOLDER LINK FOR EXEMPLARS
         exemplar_link = "https://drive.google.com/drive/folders/PASTE_YOUR_GOOGLE_DRIVE_LINK_HERE" 
         
-        # UPDATED POLICY LINK BELOW
+        # LINK TO BOARD POLICY
         policy_link = "https://tsbanet-my.sharepoint.com/:w:/g/personal/policy_tsba_net/IQBC2qP4HLINS4bE_uYSfCoTAfRZQl550nGkjSwQjwB0-KM?rtime=Un5aaupo3kg"
+
+        # LINK TO BCS PROCEDURES (NEW)
+        procedures_link = "https://docs.google.com/document/d/17MidI3WAEx97bgsHql8r5L3s_-oK2Ackx2L8Dw3LQzg/edit?tab=t.0"
 
         st.markdown(f"""
         **Essential Documents:**
-        * [📜 **Board Policy 6.4001**]({policy_link}) *(Direct Link)*
-        * [🏆 **Model Proposal Examples**]({exemplar_link}) *(Click to View)*
+        * [📜 **Board Policy 6.4001**]({policy_link})
+        * [📋 **BCS Research Procedures**]({procedures_link})
+        * [🏆 **Model Proposal Examples**]({exemplar_link})
         """)
     
     st.markdown("---")
