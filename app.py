@@ -3,6 +3,7 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 import importlib.metadata
 import random
+import requests # <-- NEW: This allows Python to fetch URLs
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -13,19 +14,24 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🛑 ADMIN SECTION: DISTRICT STANDARDS
+# 🛑 ADMIN SECTION: DISTRICT STANDARDS LIVE FETCH
 # ==========================================
-# INSTRUCTION: PASTE THE TEXT OF YOUR NEW "REGULATIONS AND PROCEDURES" DOCUMENT
-# BETWEEN THE TRIPLE QUOTES BELOW. THE AI WILL USE THIS AS THE SOURCE OF TRUTH.
+# This function fetches the live text from your public Google Doc.
+# It caches the result for 1 hour so it doesn't slow down the app.
 
-DISTRICT_STANDARDS_TEXT = """
-(PASTE YOUR NEW REGULATION TEXT HERE. DELETE THIS LINE AND PASTE THE CONTENT.
-Examples of what should be here:
-- The text defining prohibited topics.
-- The text defining data destruction requirements.
-- The text regarding parental consent.
-The AI will read this exact text to make its decisions.)
-"""
+@st.cache_data(ttl=3600)
+def get_live_standards():
+    try:
+        # Note the /export?format=txt at the end of your Google Doc ID
+        doc_url = "https://docs.google.com/document/d/17MidI3WAEx97bgsHql8r5L3s_-oK2Ackx2L8Dw3LQzg/export?format=txt"
+        response = requests.get(doc_url)
+        response.raise_for_status() # Check for errors
+        return response.text
+    except Exception as e:
+        return f"Error loading standards: {e}. Please ensure the Google Doc is set to 'Anyone with the link can view'."
+
+# Fetch the standards when the app loads
+DISTRICT_STANDARDS_TEXT = get_live_standards()
 
 # ==========================================
 # END ADMIN SECTION
