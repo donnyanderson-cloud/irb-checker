@@ -3,7 +3,7 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 import importlib.metadata
 import random
-import requests # <-- NEW: This allows Python to fetch URLs
+import requests
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -16,23 +16,19 @@ st.set_page_config(
 # ==========================================
 # 🛑 ADMIN SECTION: DISTRICT STANDARDS LIVE FETCH
 # ==========================================
-# This function fetches the live text from your public Google Doc.
-# It caches the result for 1 hour so it doesn't slow down the app.
-
 @st.cache_data(ttl=3600)
 def get_live_standards():
     try:
-        # Note the /export?format=txt at the end of your Google Doc ID
+        # Live link to the Google Doc export
         doc_url = "https://docs.google.com/document/d/17MidI3WAEx97bgsHql8r5L3s_-oK2Ackx2L8Dw3LQzg/export?format=txt"
         response = requests.get(doc_url)
-        response.raise_for_status() # Check for errors
+        response.raise_for_status() 
         return response.text
     except Exception as e:
         return f"Error loading standards: {e}. Please ensure the Google Doc is set to 'Anyone with the link can view'."
 
 # Fetch the standards when the app loads
 DISTRICT_STANDARDS_TEXT = get_live_standards()
-
 # ==========================================
 # END ADMIN SECTION
 # ==========================================
@@ -55,14 +51,12 @@ with st.sidebar:
     st.warning("🔒 **Privacy:** Do not upload files containing real participant names or PII.")
 
     # 3. APP UPDATES
-    with st.expander("🆕 App Updates (v3.4)"):
+    with st.expander("🆕 App Updates (v3.5)"):
         st.markdown("""
         **Latest Improvements:**
+        * 🔍 **Enhanced AI Scanning:** Improved text extraction to prevent the AI from missing dates or data destruction methods.
         * 📋 **New Procedures Link:** Direct access to the official BCS Research Regulations document.
         * 🏆 **Exemplar Library:** Model proposals to help you start.
-        * 💡 **Pro Tips:** Added guidance on explicit policy citation.
-        * 📜 **Live Standards Update:** The AI screens against the revised District Regulations.
-        * 📂 **Multi-File Uploads:** Support for multiple PDF uploads in the Proposal section.
         """)
 
     # 4. FILE NAMING GUIDE
@@ -76,12 +70,6 @@ with st.sidebar:
             
             **Required Format:**
             `Last name, First name - [Document Type]`
-            
-            **Copy/Paste Templates:**
-            * `Smith, John - Research Proposal`
-            * `McCall, Debbie - Survey - Interview Questions`
-            * `Wolfe-Miller, LaDonna - Parent Permission Form`
-            * `Jones, Tommy - Principal-District Permission Forms`
             """)
         else:
             st.markdown("""
@@ -92,15 +80,10 @@ with st.sidebar:
             * `Lastname_Institution_Instruments_2025.pdf`
             """)
 
-    # 5. RESOURCES (UPDATED WITH PROCEDURES LINK)
+    # 5. RESOURCES
     with st.expander("📚 Helpful Resources"):
-        # REPLACE THE LINK BELOW WITH YOUR ACTUAL GOOGLE DRIVE FOLDER LINK FOR EXEMPLARS
         exemplar_link = "https://drive.google.com/drive/folders/PASTE_YOUR_GOOGLE_DRIVE_LINK_HERE" 
-        
-        # LINK TO BOARD POLICY
         policy_link = "https://tsbanet-my.sharepoint.com/:w:/g/personal/policy_tsba_net/IQBC2qP4HLINS4bE_uYSfCoTAfRZQl550nGkjSwQjwB0-KM?rtime=Un5aaupo3kg"
-
-        # LINK TO BCS PROCEDURES (NEW)
         procedures_link = "https://docs.google.com/document/d/17MidI3WAEx97bgsHql8r5L3s_-oK2Ackx2L8Dw3LQzg/edit?tab=t.0"
 
         st.markdown(f"""
@@ -114,40 +97,14 @@ with st.sidebar:
     
     # 6. KEY MANAGEMENT
     api_key = None
-    
-    # Check for the list of keys (Primary Method for Classrooms)
     if "DISTRICT_KEYS" in st.secrets:
         key_pool = st.secrets["DISTRICT_KEYS"]
         district_key = random.choice(key_pool)
         api_key = district_key
-        
-        if user_mode == "AP Research Student":
-            st.success(f"✅ District License Active")
-            with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-                st.info("Classroom blocked? Use your own free key to bypass the wait.")
-                st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-                user_key = st.text_input("Paste your personal key:", type="password")
-                if user_key:
-                    api_key = user_key
-                    st.success("✅ Using Personal Key")
-        else:
-            st.success("✅ District License Active")
-
-    # Fallback for Single Key (Legacy Method)
+        st.success(f"✅ District License Active")
     elif "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
-        if user_mode == "AP Research Student":
-            st.success("✅ District License Active")
-            with st.expander("🚀 Performance Boost (Use Your Own Key)"):
-                st.info("Classroom blocked? Use your own free key.")
-                st.link_button("1. Get Free API Key ↗️", "https://aistudio.google.com/app/apikey")
-                user_key = st.text_input("Paste your personal key:", type="password")
-                if user_key:
-                    api_key = user_key
-                    st.success("✅ Using Personal Key")
-        else:
-            st.success("✅ District License Active")
-
+        st.success("✅ District License Active")
     else:
         st.markdown("### 🔑 Need an API Key?")
         st.info("System requires an API key.")
@@ -164,14 +121,19 @@ with st.sidebar:
             lib_ver = "Unknown"
         st.caption(f"⚙️ System Version: {lib_ver}")
 
-# --- HELPER FUNCTION: PDF TEXT EXTRACTION ---
+# --- HELPER FUNCTION: ENHANCED PDF TEXT EXTRACTION ---
 def extract_text(uploaded_file):
     try:
         reader = PdfReader(uploaded_file)
         text = ""
         for page in reader.pages:
-            text += page.extract_text()
-        return text
+            extracted = page.extract_text()
+            if extracted:
+                # Add a space to prevent words from merging when line breaks are removed
+                text += extracted + " " 
+        # Replace newlines with spaces so dates don't get squished into preceding words
+        clean_text = text.replace('\n', ' ')
+        return clean_text
     except Exception as e:
         return f"Error reading PDF: {e}"
 
@@ -180,9 +142,7 @@ def extract_text(uploaded_file):
 # ==========================================
 if user_mode == "AP Research Student":
     
-    # --- HEADER WITH CUSTOM LOGO ---
     col_logo, col_text = st.columns([1, 8]) 
-    
     with col_logo:
         try:
             st.image("APlogo.png", width=100)
@@ -192,71 +152,16 @@ if user_mode == "AP Research Student":
     with col_text:
         st.title("AP Research IRB Self-Check Tool")
     
-    # --- WORKFLOW GRAPHIC ---
     with st.expander("🗺️ View Research Workflow Map"):
         st.graphviz_chart("""
         digraph {
             rankdir=TB;
             node [shape=box, style="filled,rounded", fontname="Sans-Serif"];
-            
-            # Colors
-            node [fillcolor="#e1f5fe" color="#01579b"]; # Student Blue
-            
-            # Phase 1
-            subgraph cluster_0 {
-                label = "Phase 1: Development";
-                style=dashed; color=grey;
-                Draft [label="📝 Draft Proposal"];
-                Inst [label="Create Instruments"];
-                Draft -> Inst;
-            }
-
-            # Phase 2
-            subgraph cluster_1 {
-                label = "Phase 2: AI Compliance Check";
-                style=filled; color="#e8f5e9";
-                
-                node [fillcolor="#c8e6c9" color="#2e7d32"]; # AI Green
-                Upload [label="🚀 Upload to AI Portal"];
-                Check [label="⚠️ AI Review"];
-                Pass [label="✅ Clean Bill of Health"];
-                Fail [label="❌ Revision Needed"];
-                
-                Inst -> Upload;
-                Upload -> Check;
-                Check -> Pass;
-                Check -> Fail;
-                Fail -> Upload [label="Fix & Re-upload"];
-            }
-
-            # Phase 3
-            subgraph cluster_2 {
-                label = "Phase 3: School IRB Approval";
-                style=filled; color="#fff9c4";
-                
-                node [fillcolor="#fff59d" color="#fbc02d"]; # School Yellow
-                Submit [label="📧 Submit to School IRB"];
-                Review [label="School Committee Review"];
-                Approve [label="📜 Approval Letter"];
-                
-                Pass -> Submit;
-                Submit -> Review;
-                Review -> Approve;
-                Review -> Fail [label="Denied"];
-            }
-
-            # Phase 4
-            subgraph cluster_3 {
-                label = "Phase 4: Implementation";
-                style=filled; color="#f3e5f5";
-                
-                node [fillcolor="#e1bee7" color="#7b1fa2"]; # School Purple
-                Principal [label="📍 Contact Principal"];
-                Start [label="📊 Begin Data Collection"];
-                
-                Approve -> Principal;
-                Principal -> Start [label="Site Permission"];
-            }
+            node [fillcolor="#e1f5fe" color="#01579b"];
+            subgraph cluster_0 { label = "Phase 1: Development"; style=dashed; color=grey; Draft -> Inst; }
+            subgraph cluster_1 { label = "Phase 2: AI Compliance Check"; style=filled; color="#e8f5e9"; node [fillcolor="#c8e6c9" color="#2e7d32"]; Upload -> Check; Check -> Pass; Check -> Fail; Fail -> Upload [label="Fix & Re-upload"]; Inst -> Upload; }
+            subgraph cluster_2 { label = "Phase 3: School IRB Approval"; style=filled; color="#fff9c4"; node [fillcolor="#fff59d" color="#fbc02d"]; Pass -> Submit; Submit -> Review; Review -> Approve; Review -> Fail [label="Denied"]; }
+            subgraph cluster_3 { label = "Phase 4: Implementation"; style=filled; color="#f3e5f5"; node [fillcolor="#e1bee7" color="#7b1fa2"]; Approve -> Principal; Principal -> Start [label="Site Permission"]; }
         }
         """)
     
@@ -286,7 +191,6 @@ if user_mode == "AP Research Student":
         input_method = st.radio("Input Method:", ["Paste Text", "Upload PDF"], horizontal=True, key="ap_survey_toggle")
         
         if input_method == "Paste Text":
-            st.info("💡 Tip: For Google Forms, Ctrl+A -> Copy -> Paste here.")
             text = st.text_area("Paste text here:", height=200, key="ap_survey_text")
             if text: student_inputs["SURVEY"] = text
         else:
@@ -295,7 +199,6 @@ if user_mode == "AP Research Student":
 
     if "Participant Consent Forms (Parent or Adult)" in selected_docs:
         st.markdown("### 3. Participant Consent Forms")
-        st.caption("Upload Parent Permission (for Minors) OR Adult Consent (for 18+).")
         file = st.file_uploader("Upload Consent PDF", type="pdf", key="ap_consent")
         if file: student_inputs["CONSENT_FORMS"] = extract_text(file)
 
@@ -304,26 +207,23 @@ if user_mode == "AP Research Student":
         file = st.file_uploader("Upload Permission Form (PDF)", type="pdf", key="ap_perm")
         if file: student_inputs["PERMISSION_FORM"] = extract_text(file)
 
-    # --- SYSTEM PROMPT (STUDENT) ---
+    # --- ENHANCED SYSTEM PROMPT (STUDENT) ---
     system_prompt = f"""
     ROLE: A helpful, encouraging AP Research Mentor and Compliance Guide.
     
     INSTRUCTION: Review the student proposal for compliance with Policy 6.4001, AP Ethics, and the specific District Standards provided below.
     
-    **TONE GUIDE:**
-    * Be clear, encouraging, and supportive (like a teacher helper).
-    * Avoid robotic or overly legalistic language.
-    * Use "We" and "You".
+    **TONE GUIDE:** Be clear, encouraging, and supportive. Use "We" and "You".
     
-    **REVIEW STRATEGY:**
-    1. **SUBJECT TRIAGE:** Determine if the participants are **MINORS** (Students <18) or **ADULTS** (Teachers/Community 18+).
-       - IF MINORS: Check for "Parent Permission Form".
-       - IF ADULTS: Check for "Adult Informed Consent Form" (Do NOT ask for Parent Permission).
-    2. **CHECK AGAINST SOURCE:** Compare the student's work specifically against the 'DISTRICT_STANDARDS' text provided below.
-    3. **EDUCATIONAL RATIONALE:** Explain the "Why" simply.
+    **REVIEW STRATEGY & ANTI-HALLUCINATION PROTOCOL:**
+    1. **SUBJECT TRIAGE:** Determine if the participants are MINORS or ADULTS. Check for the appropriate consent form.
+    2. **DOUBLE-CHECK PROTOCOL:** Do NOT declare information missing without looking closely. 
+       - *Data Destruction Check:* Search the text specifically for keywords like "destroy", "delete", "shred", "erase", along with dates/months/years. If they say "deleted by May 2026", it PASSES. Do NOT fail them falsely.
+       - *Prohibited Topics Check:* If they explicitly state they will not cover political, religious, or firearm topics, it PASSES.
+    3. **CHECK AGAINST SOURCE:** Compare the student's work specifically against the 'DISTRICT_STANDARDS' text provided below.
+    4. **EDUCATIONAL RATIONALE:** Explain the "Why" simply.
     
-    **STRICT CONSTRAINTS:** 1. Do NOT rewrite the student's text.
-    2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality. Focus ONLY on regulatory compliance.
+    **STRICT CONSTRAINTS:** Focus ONLY on regulatory compliance, not grammar.
     
     **SOURCE OF TRUTH (DISTRICT STANDARDS):**
     \"\"\"{DISTRICT_STANDARDS_TEXT}\"\"\"
@@ -341,18 +241,13 @@ if user_mode == "AP Research Student":
 else:
     st.title("🏛️ External Research Proposal Review")
     st.info("### 📋 Criteria for External Proposals")
-    
-    st.markdown("All research requests involving Blount County Schools (BCS) are critiqued against District Standards (Policy 6.4001).&nbsp; Check the sidebar resource to **confirm file-naming standards** for each of your files.")
-    
-    st.info("You may upload multiple PDF files for each section.")
+    st.markdown("All research requests involving Blount County Schools (BCS) are critiqued against District Standards (Policy 6.4001).")
 
     external_inputs = {}
     
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("### 1. Main Proposal Packet")
-        st.caption("Purpose, Methodology, Benefit, Logistics.")
         prop_files = st.file_uploader("Upload Full Proposal (PDFs)", type="pdf", key="ext_prop", accept_multiple_files=True)
         if prop_files:
             combined_text = ""
@@ -362,7 +257,6 @@ else:
 
     with col2:
         st.markdown("### 2. Instruments & Consents")
-        st.caption("Surveys, Protocols, Consent Forms.")
         inst_files = st.file_uploader("Upload Instruments (PDFs)", type="pdf", key="ext_inst", accept_multiple_files=True)
         if inst_files:
             combined_text = ""
@@ -370,21 +264,20 @@ else:
                 combined_text += extract_text(f) + "\n\n"
             external_inputs["INSTRUMENTS"] = combined_text
 
-    # --- SYSTEM PROMPT (EXTERNAL) ---
+    # --- ENHANCED SYSTEM PROMPT (EXTERNAL) ---
     system_prompt = f"""
     ROLE: Research Committee Reviewer for Blount County Schools (BCS).
     TASK: Analyze the external research proposal against Board Policy 6.4001 and the updated Regulations provided below.
 
-    **REVIEW STRATEGY:**
-    1. **SUBJECT TRIAGE:** Determine if the participants are **MINORS** (Students <18) or **ADULTS** (Teachers/Staff).
-       - IF MINORS: Check for "Parent Permission Form".
-       - IF ADULTS: Check for "Adult Informed Consent Form".
-    2. **CHECK AGAINST SOURCE:** Compare the proposal specifically against the 'DISTRICT_STANDARDS' text provided below.
-    3. **EDUCATIONAL RATIONALE:** Explain **WHY** the revision is needed by citing the standards below.
+    **REVIEW STRATEGY & ANTI-HALLUCINATION PROTOCOL:**
+    1. **SUBJECT TRIAGE:** Determine if the participants are MINORS or ADULTS. Check for appropriate consent.
+    2. **DOUBLE-CHECK PROTOCOL:** Do NOT declare information missing without looking closely. 
+       - *Data Destruction Check:* Search the text specifically for keywords like "destroy", "delete", "shred", "erase", along with dates/months/years. If they provide a timeline/date and method, it PASSES.
+       - *Prohibited Topics Check:* If they explicitly state they will not cover political, religious, or firearm topics, it PASSES.
+    3. **CHECK AGAINST SOURCE:** Compare the proposal specifically against the 'DISTRICT_STANDARDS' text provided below.
+    4. **EDUCATIONAL RATIONALE:** Explain **WHY** the revision is needed by citing the standards below.
 
-    **STRICT CONSTRAINTS:**
-    1. Do not provide specific rewrite examples or sample verbiage. 
-    2. **SCOPE LIMITATION:** Do NOT critique grammar or research quality. Focus ONLY on regulatory compliance.
+    **STRICT CONSTRAINTS:** Focus ONLY on regulatory compliance.
 
     **SOURCE OF TRUTH (DISTRICT STANDARDS):**
     \"\"\"{DISTRICT_STANDARDS_TEXT}\"\"\"
@@ -407,14 +300,12 @@ if st.button("Run Compliance Check"):
     elif not student_inputs:
         st.warning("Please upload at least one document.")
     else:
-        # 1. SETUP
         status = st.empty() 
         status.info("🔌 Connecting to AI Services...")
         genai.configure(api_key=api_key)
         
-        # 2. CONFIGURATION
         generation_config = {
-            "temperature": 0.3, 
+            "temperature": 0.1,  # Lowered temperature slightly to make it more factual/less hallucination-prone
             "top_p": 0.95, 
             "top_k": 40, 
             "max_output_tokens": 8192
@@ -427,7 +318,6 @@ if st.button("Run Compliance Check"):
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
         ]
 
-        # 3. PREPARING TEXT
         status.info("📄 Reading your PDF files...")
         user_message = f"{system_prompt}\n\nAnalyze the following documents:\n"
         
@@ -439,12 +329,11 @@ if st.button("Run Compliance Check"):
         
         status.info(f"📤 Sending {total_chars} characters to Gemini AI...")
 
-        # 4. MODEL SELECTOR
         target_models = [
-            "gemini-2.5-flash-lite",      # 🥇 Confirmed in your list
-            "gemini-flash-lite-latest",   # 🥈 Alias for the above
-            "gemini-2.0-flash-lite",      # 🥉 Fallback Lite model
-            "gemini-2.5-flash"            # 🚨 LAST RESORT (Low 20/day limit)
+            "gemini-2.5-flash-lite",      
+            "gemini-flash-lite-latest",   
+            "gemini-2.0-flash-lite",      
+            "gemini-2.5-flash"            
         ]
 
         response = None
@@ -466,14 +355,12 @@ if st.button("Run Compliance Check"):
                 except Exception as e:
                     continue
 
-        # 5. DISPLAY RESULTS
         if success and response:
             st.toast(f"✅ Connected to: {connected_model}", icon="⚡")
             status.success("✅ Analysis Complete!")
             st.markdown("---")
             st.markdown(response.text)
             
-            # --- CONDITIONAL NEXT STEPS ---
             st.markdown("---")
             st.subheader("📬 Next Steps")
             
@@ -490,7 +377,6 @@ if st.button("Run Compliance Check"):
                 * **Re-run this check** until you get a PASS status.
                 """)
             else: 
-                # External Researchers usually still need District Approval
                 st.success("""
                 **✅ If all of your artifacts have passed:**
                 Please email your screened files to Blount County Schools (**research@blountk12.org**) for final approval. 
